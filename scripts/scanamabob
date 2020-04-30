@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+import sys
+from scanamabob.commands import commands
+
+VERSION = '0.0.1'
+USAGE = f"""Usage: {sys.argv[0]} <command> [-h] [command-specific-arguments]
+
+Scanamabob v{VERSION} - AWS Security Tooling
+
+  s3audit  -  Identify publicly accessible S3 buckets and objects
+  scan     -  Scan AWS environment for common security misconfigurations"""
+
+if len(sys.argv) < 2 or sys.argv[1] not in commands:
+    print(USAGE)
+    exit(1)
+
+commands[sys.argv[1]]['function'](sys.argv[2:])
+

@@ -1,0 +1,10 @@
+.direnv/
+.envrc
+*.pyc
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+MANIFEST
+build/
+dist/
+scanamabob.egg-info
