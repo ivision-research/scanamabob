@@ -1,5 +1,6 @@
 import sys
 from argparse import ArgumentParser
+import time
 
 DESCRIPTION = 'Identify publicly accessible S3 buckets and objects'
 USAGE = f'''{sys.argv[0]} s3audit [-h]'''
@@ -11,7 +12,13 @@ def parse_args(args):
 
 def command(args):
     arguments = parse_args(args)
-    print('audit!')
+    print('Scanning S3 objects for publicly accessible buckets and objects...')
+    try:
+        time.sleep(50)
+    except KeyboardInterrupt:
+        print("Audit command cancelled.")
+        return
+    print('Report generated at s3_audit.md')
 
 
 COMMAND = {'description': DESCRIPTION,

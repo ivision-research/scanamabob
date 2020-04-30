@@ -1,6 +1,6 @@
 import boto3
 import os
-from scanamabob.scans import Finding, Scan, ScanSet
+from scanamabob.scans import Finding, Scan, ScanSuite
 from .ec2 import get_regions
 
 cloudtrail = boto3.client('cloudtrail')
@@ -10,7 +10,7 @@ class LogFileValidation(Scan):
     title = 'Verifying log file validation on all CloudTrails'
     permissions = ['']
 
-    def run(self):
+    def run(self, context):
         findings = []
         trails = []
         log_validation_disabled = []
@@ -33,5 +33,5 @@ class LogFileValidation(Scan):
         return findings
 
 
-scans = ScanSet('CloudTrail Scans',
-                LogFileValidation())
+scans = ScanSuite('CloudTrail Scans',
+                  {'log_validation': LogFileValidation()})

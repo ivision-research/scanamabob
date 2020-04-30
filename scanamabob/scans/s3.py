@@ -1,6 +1,6 @@
 import boto3
 from botocore.exceptions import ClientError
-from scanamabob.scans import Finding, Scan, ScanSet
+from scanamabob.scans import Finding, Scan, ScanSuite
 
 s3 = boto3.client('s3')
 resources = boto3.resource('s3')
@@ -109,7 +109,7 @@ class EncryptionScan(Scan):
     title = 'Scanning S3 buckets for encryption'
     permissions = ['s3:ListAllMyBuckets', 's3:GetEncryptionConfiguration']
 
-    def run(self):
+    def run(self, context):
         without = []
         for bucket in _get_all_buckets():
             try:
@@ -136,6 +136,6 @@ class EncryptionScan(Scan):
         return []
 
 
-scans = ScanSet('S3 Scans',
-                #PermissionScan(),
-                EncryptionScan())
+scans = ScanSuite('S3 Scans',
+                  #PermissionScan(),
+                  {'encryption': EncryptionScan()})

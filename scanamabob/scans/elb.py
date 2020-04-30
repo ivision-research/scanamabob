@@ -1,13 +1,13 @@
 import boto3
 from .ec2 import get_regions
-from scanamabob.scans import Finding, Scan, ScanSet
+from scanamabob.scans import Finding, Scan, ScanSuite
 
 
 class AccessLogScan(Scan):
     title = 'Verifying ELB instances have access logs enabled'
     permissions = ['']
 
-    def run(self):
+    def run(self, context):
         findings = []
         accesslogs_disabled = {}
         elb_count = 0
@@ -58,7 +58,7 @@ class DeleteProtectScan(Scan):
     title = 'Verifying ELBv2 instances have delete protection enabled'
     permissions = ['']
 
-    def run(self):
+    def run(self, context):
         findings = []
         dltpt_disabled = {}
         elb_count = 0
@@ -92,6 +92,6 @@ class DeleteProtectScan(Scan):
         return findings
 
 
-scans = ScanSet('ELB Scans',
-                AccessLogScan(),
-                DeleteProtectScan())
+scans = ScanSuite('ELB Scans',
+                  {'access_log': AccessLogScan(),
+                   'delete_protect': DeleteProtectScan()})

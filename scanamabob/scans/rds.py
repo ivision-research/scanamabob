@@ -1,6 +1,6 @@
 import boto3
 from .ec2 import get_regions
-from scanamabob.scans import Finding, Scan, ScanSet
+from scanamabob.scans import Finding, Scan, ScanSuite
 
 rds = boto3.client('rds')
 
@@ -8,7 +8,7 @@ class EncryptionScan(Scan):
     title = 'Verifying RDS instances have encryption enabled'
     permissions = ['']
 
-    def run(self):
+    def run(self, context):
         findings = []
         rds_count = 0
         unenc_count = 0
@@ -35,5 +35,5 @@ class EncryptionScan(Scan):
         return findings
 
 
-scans = ScanSet('RDS Scans',
-                EncryptionScan())
+scans = ScanSuite('RDS Scans',
+                  {'encryption': EncryptionScan()})

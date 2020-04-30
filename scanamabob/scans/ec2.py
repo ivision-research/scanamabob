@@ -1,6 +1,6 @@
 import boto3
 import os
-from scanamabob.scans import Finding, Scan, ScanSet
+from scanamabob.scans import Finding, Scan, ScanSuite
 
 ec2 = boto3.client('ec2')
 
@@ -68,7 +68,7 @@ class EncryptionScan(Scan):
     title = 'Scanning EC2 instances for EBS volume encryption'
     permissions = ['']
 
-    def run(self):
+    def run(self, context):
         findings = []
         total_volumes = 0
         unencrypted_volumes = 0
@@ -99,5 +99,5 @@ class EncryptionScan(Scan):
         return findings
 
 
-scans = ScanSet('EC2 Scans',
-                EncryptionScan())
+scans = ScanSuite('EC2 Scans',
+                  {'encryption': EncryptionScan()})

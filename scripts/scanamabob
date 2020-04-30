@@ -3,7 +3,7 @@ import sys
 from scanamabob.commands import commands
 
 VERSION = '0.0.1'
-USAGE = f"""Usage: {sys.argv[0]} <command> [-h] [command-specific-arguments]
+USAGE = f"""Usage: scanamabob <command> [-h] [command-specific-arguments]
 
 Scanamabob v{VERSION} - AWS Security Tooling
 

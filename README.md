@@ -26,7 +26,7 @@ Default output format [json]:
 Runs like a standard python app, `-h` can help you find the small set of supported options.
 
 ```
-Usage: ./scanamabob.py <command> [-h] [command-specific-arguments]
+Usage: scanamabob <command> [-h] [command-specific-arguments]
 
 Scanamabob v0.0.1 - AWS Security Tooling
 

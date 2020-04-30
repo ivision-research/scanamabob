@@ -1,6 +1,6 @@
 import time
 import boto3
-from scanamabob.scans import Finding, Scan, ScanSet
+from scanamabob.scans import Finding, Scan, ScanSuite
 
 iam = boto3.client('iam')
 resources = boto3.resource('iam')
@@ -21,7 +21,7 @@ class MfaScan(Scan):
     permissions = ['iam:ListUsers', 'iam:ListMFADevices',
                    'iam:GetLoginProfile']
 
-    def run(self):
+    def run(self, context):
         usernames = _get_usernames()
         users_without_mfa = []
 
@@ -52,10 +52,10 @@ class MfaScan(Scan):
 
 
 class CredentialReport(Scan):
-    title = 'AWS Account has an enabled Root Access Key'
+    title = 'AWS Account with enabled Root Access Key'
     permissions = ['iam:GenerateCredentialReport', 'iam:GetCredentialReport']
 
-    def run(self):
+    def run(self, context):
         report_state = iam.generate_credential_report()['State']
         generating = report_state != 'COMPLETE'
         while generating:
@@ -78,7 +78,7 @@ class PasswordPolicy(Scan):
     title = 'Checking AWS account password policies'
     permissions = ['iam:GetAccountPasswordPolicy']
 
-    def run(self):
+    def run(self, context):
         try:
             policy = resources.AccountPasswordPolicy()
             policy.load()
@@ -89,7 +89,7 @@ class PasswordPolicy(Scan):
         return []
 
 
-scans = ScanSet('IAM Scans',
-                MfaScan(),
-                CredentialReport(),
-                PasswordPolicy())
+scans = ScanSuite('IAM Scans',
+                  {'mfa': MfaScan(),
+                   'credentials': CredentialReport(),
+                   'password_policy': PasswordPolicy()})

@@ -3,28 +3,29 @@ class Scan(object):
     permissions = []
     finding_template = None
 
-    def run(self):
+    def run(self, context):
         print('Scan "{}" has no defined run method'.format(self.title))
         return []
 
 
-class ScanSet(object):
-    def __init__(self, title, *scans):
+class ScanSuite(object):
+    def __init__(self, title, scans):
         self.title = title
         self.scans = scans
 
-    def run(self):
-        print('Running Scan Set "{}"'.format(self.title))
+    def run(self, context):
+        print('Running Scan Suite "{}"'.format(self.title))
         findings = []
-        for scan in self.scans:
+        for scantype in self.scans:
+            scan = self.scans[scantype]
             print(' - Running Scan "{}"'.format(scan.title))
-            findings.extend(scan.run())
+            findings.extend(scan.run(context))
         return findings
 
     def get_permissions(self):
         permissions = []
         for scan in self.scans:
-            permissions.extend(scan.permissions)
+            permissions.extend(self.scans[scan].permissions)
         return sorted(set(permissions))
 
 
