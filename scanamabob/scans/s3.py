@@ -137,5 +137,4 @@ class EncryptionScan(Scan):
 
 
 scans = ScanSuite('S3 Scans',
-                  #PermissionScan(),
                   {'encryption': EncryptionScan()})

@@ -9,21 +9,23 @@ import scanamabob.scans.s3 as s3
 import scanamabob.scans.cloudtrail as cloudtrail
 import scanamabob.scans.elb as elb
 import scanamabob.scans.rds as rds
-from scanamabob.context import Context
+from scanamabob.context import Context, add_context_to_argparse
 
 DESCRIPTION = 'Scan AWS environment for common security misconfigurations'
 USAGE = f'''scanamabob scan [-h] [-p] [-l] [scantypes] [...]'''
 parser = ArgumentParser(description=DESCRIPTION,
                         usage=USAGE)
-#parser.add_argument('-o', '--output', choices=['stdout', 'json'],
-#                    default='stdout',
-#                    help="Output format for scan (default: stdout)")
+# parser.add_argument('-o', '--output', choices=['stdout', 'json'],
+#                     default='stdout',
+#                     help="Output format for scan (default: stdout)")
 parser.add_argument('scantypes', nargs='*',
                     help="Specific scan suite or individual scan to run (eg. iam.mfa)")
 parser.add_argument('-p', '--permissions', action='store_true',
                     help="Return IAM Policy JSON needed to complete scan")
 parser.add_argument('-l', '--list-scans', action='store_true',
                     help="List the scans available to run")
+add_context_to_argparse(parser)
+
 
 scan_suites = {
     'iam': iam.scans,
@@ -128,7 +130,7 @@ def command(args):
         print('Invalid scan types provided, scan cancelled')
         sys.exit(1)
 
-    context = Context()
+    context = Context(arguments.profiles, arguments.regions)
 
     if arguments.permissions:
         get_permissions(arguments.scantypes)

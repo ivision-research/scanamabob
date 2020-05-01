@@ -4,6 +4,7 @@ from scanamabob.scans import Finding, Scan, ScanSuite
 
 rds = boto3.client('rds')
 
+
 class EncryptionScan(Scan):
     title = 'Verifying RDS instances have encryption enabled'
     permissions = ['']
