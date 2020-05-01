@@ -23,7 +23,7 @@ class PermissionScan(Scan):
                    's3:GetBucketPublicAccessBlock',
                    'iam:GetUser']
 
-    def run(self):
+    def run(self, context, profile=None):
         buckets = _get_all_buckets()
         findings = []
 
@@ -109,7 +109,7 @@ class EncryptionScan(Scan):
     title = 'Scanning S3 buckets for encryption'
     permissions = ['s3:ListAllMyBuckets', 's3:GetEncryptionConfiguration']
 
-    def run(self, context):
+    def run(self, context, profile=None):
         without = []
         for bucket in _get_all_buckets():
             try:

@@ -9,7 +9,7 @@ class EncryptionScan(Scan):
     title = 'Verifying RDS instances have encryption enabled'
     permissions = ['']
 
-    def run(self, context):
+    def run(self, context, profile=None):
         findings = []
         rds_count = 0
         unenc_count = 0

@@ -9,8 +9,8 @@ class MfaScan(Scan):
     permissions = ['iam:ListUsers', 'iam:ListMFADevices',
                    'iam:GetLoginProfile']
 
-    def run(self, context):
-        usernames = all_users(context)
+    def run(self, context, profile=None):
+        usernames = all_users(context, profile)
         users_without_mfa = []
         iam = client(context)
 
@@ -44,7 +44,7 @@ class CredentialReport(Scan):
     title = 'AWS Account with enabled Root Access Key'
     permissions = ['iam:GenerateCredentialReport', 'iam:GetCredentialReport']
 
-    def run(self, context):
+    def run(self, context, profile=None):
         iam = client(context)
         report_state = iam.generate_credential_report()['State']
         generating = report_state != 'COMPLETE'
@@ -68,7 +68,7 @@ class PasswordPolicy(Scan):
     title = 'Checking AWS account password policies'
     permissions = ['iam:GetAccountPasswordPolicy']
 
-    def run(self, context):
+    def run(self, context, profile=None):
         iam = client(context)
         try:
             policy = resources(context).AccountPasswordPolicy()

@@ -10,7 +10,7 @@ class LogFileValidation(Scan):
     title = 'Verifying log file validation on all CloudTrails'
     permissions = ['']
 
-    def run(self, context):
+    def run(self, context, profile=None):
         findings = []
         trails = []
         log_validation_disabled = []

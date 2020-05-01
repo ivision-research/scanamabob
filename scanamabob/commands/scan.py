@@ -54,26 +54,35 @@ def scan_targets_valid(scanlist):
 
 def run_scans(scantypes, context):
     ''' Run the given scantypes with using the provided context '''
-    findings = []
-    if scantypes:
-        # Run user specified scans
-        for scantype in scantypes:
-            if '.' in scantype:
-                suite, target = scantype.split('.')
-                scan = scan_suites[suite].scans[target]
-                print(' - Running Scan "{}"'.format(scan.title))
-                findings.extend(scan.run(context))
-            else:
-                findings.extend(scan_suites[scantype].run(context))
-    else:
-        # Run all scans
-        for suite in scan_suites:
-            findings.extend(scan_suites[suite].run(context))
+    findings = {}
 
-    print('\n{} finding(s) from scan:'.format(len(findings)))
+    for profile in context.profiles:
+        findings[profile] = []
+        if scantypes:
+            # Run user specified scans
+            for scantype in scantypes:
+                if '.' in scantype:
+                    suite, target = scantype.split('.')
+                    scan = scan_suites[suite].scans[target]
+                    print(' - Running Scan "{}"'.format(scan.title))
+                    scan_findings = scan.run(context, profile)
+                    findings[profile].extend()
+                else:
+                    suite_findings = scan_suites[scantype].run(context,
+                                                               profile)
+                    findings[profile].extend(suite_findings)
+        else:
+            # Run all scans
+            for suite in scan_suites:
+                suite_findings = scan_suites[suite].run(context, profile)
+                findings[profile].extend(suite_findings)
 
-    for finding in findings:
-        print(finding.__dict__)
+    print('\n{} total finding(s) from scan:'.format(len(findings)))
+
+    for profile in findings:
+        print(f'Findings from {profile} profile:')
+        for finding in findings[profile]:
+            print(finding.__dict__)
 
 
 def get_permissions(scantypes):

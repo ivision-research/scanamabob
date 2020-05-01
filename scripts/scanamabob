@@ -7,7 +7,8 @@ USAGE = f"""Usage: scanamabob <command> [-h] [command-specific-arguments]
 
 Scanamabob v{VERSION} - AWS Security Tooling
 
-  s3audit  -  Identify publicly accessible S3 buckets and objects
+This tool is in a very early phase of development and is undergoing active development. Many desired features are currently missing and incomplete. Early release of this version through PyPI is intended to generate useful feedback from potential users.
+
   scan     -  Scan AWS environment for common security misconfigurations"""
 
 if len(sys.argv) < 2 or sys.argv[1] not in commands:

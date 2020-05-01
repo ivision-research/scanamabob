@@ -68,7 +68,7 @@ class EncryptionScan(Scan):
     title = 'Scanning EC2 instances for EBS volume encryption'
     permissions = ['']
 
-    def run(self, context):
+    def run(self, context, profile=None):
         findings = []
         total_volumes = 0
         unencrypted_volumes = 0

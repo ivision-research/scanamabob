@@ -7,7 +7,7 @@ class AccessLogScan(Scan):
     title = 'Verifying ELB instances have access logs enabled'
     permissions = ['']
 
-    def run(self, context):
+    def run(self, context, profile=None):
         findings = []
         accesslogs_disabled = {}
         elb_count = 0
@@ -58,7 +58,7 @@ class DeleteProtectScan(Scan):
     title = 'Verifying ELBv2 instances have delete protection enabled'
     permissions = ['']
 
-    def run(self, context):
+    def run(self, context, profile=None):
         findings = []
         dltpt_disabled = {}
         elb_count = 0
