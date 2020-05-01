@@ -1,19 +1,7 @@
 import time
 import boto3
 from scanamabob.scans import Finding, Scan, ScanSuite
-
-iam = boto3.client('iam')
-resources = boto3.resource('iam')
-
-
-def _get_usernames():
-    ''' Gets a list of users, caching the result '''
-    usernames = []
-    # TODO properly handle pagination
-    for page in iam.get_paginator('list_users').paginate(MaxItems=1000):
-        for user in page['Users']:
-            usernames.append(user['UserName'])
-    return usernames
+from scanamabob.services.iam import client, resources, all_users
 
 
 class MfaScan(Scan):
@@ -22,11 +10,12 @@ class MfaScan(Scan):
                    'iam:GetLoginProfile']
 
     def run(self, context):
-        usernames = _get_usernames()
+        usernames = all_users(context)
         users_without_mfa = []
+        iam = client(context)
 
         for username in usernames:
-            user = resources.User(username)
+            user = resources(context).User(username)
 
             # Determine if user has a login profile
             try:
@@ -56,6 +45,7 @@ class CredentialReport(Scan):
     permissions = ['iam:GenerateCredentialReport', 'iam:GetCredentialReport']
 
     def run(self, context):
+        iam = client(context)
         report_state = iam.generate_credential_report()['State']
         generating = report_state != 'COMPLETE'
         while generating:
@@ -79,8 +69,9 @@ class PasswordPolicy(Scan):
     permissions = ['iam:GetAccountPasswordPolicy']
 
     def run(self, context):
+        iam = client(context)
         try:
-            policy = resources.AccountPasswordPolicy()
+            policy = resources(context).AccountPasswordPolicy()
             policy.load()
         except iam.exceptions.NoSuchEntityException:
             return [Finding('iam_no_passpol',

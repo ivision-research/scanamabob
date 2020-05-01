@@ -21,7 +21,10 @@ class Context(object):
         else:
             self.regions = [regions]
 
-    def get_profile_creds(self, profile_name):
+    def get_credentials(self, profile_name=None):
+        if profile_name is None:
+            profile_name = self.profiles[0]
+
         config = ConfigParser()
         credential_path = '~/.aws/credentials'
         config.read(os.path.expanduser(credential_path))
