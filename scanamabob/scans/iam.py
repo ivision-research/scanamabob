@@ -1,30 +1,30 @@
-import time
 import boto3
 from scanamabob.scans import Finding, Scan, ScanSuite
-from scanamabob.services.iam import client, resources, all_users
+from scanamabob.services.iam import client, resources, get_all_users, \
+    get_credential_report
 
 
 class MfaScan(Scan):
-    title = 'AWS users without Multi-Factor Authentication'
+    title = 'AWS IAM Users without Multi-Factor Authentication'
     permissions = ['iam:ListUsers', 'iam:ListMFADevices',
                    'iam:GetLoginProfile']
 
     def run(self, context, profile=None):
-        usernames = all_users(context, profile)
+        usernames = get_all_users(context, profile)
         users_without_mfa = []
-        iam = client(context)
+        iam = client(context, profile)
 
         for username in usernames:
-            user = resources(context).User(username)
+            user = resources(context, profile).User(username)
 
-            # Determine if user has a login profile
+            # Determine if user has a login profile (Console access)
             try:
-                profile = iam.get_login_profile(UserName=username)
+                _ = iam.get_login_profile(UserName=username)
             except iam.exceptions.NoSuchEntityException:
                 # This user does not have access to the AWS Console
                 continue
             except Exception as err:
-                print(f'ERROR: {err}')
+                print(f'Unexpected error: {err}')
                 continue
 
             # Check if user has any MFA devices registered
@@ -34,25 +34,20 @@ class MfaScan(Scan):
 
         # If any users have a login profile, but no MFA, generate a finding
         if len(users_without_mfa):
-            finding = Finding('iam_mfa', self.title, 'HIGH', users=users_without_mfa)
+            finding = Finding(context.state, self.title, 'HIGH',
+                              users=users_without_mfa)
             return [finding]
 
         return []
 
 
-class CredentialReport(Scan):
+class RootAccessKey(Scan):
     title = 'AWS Account with enabled Root Access Key'
     permissions = ['iam:GenerateCredentialReport', 'iam:GetCredentialReport']
 
     def run(self, context, profile=None):
-        iam = client(context)
-        report_state = iam.generate_credential_report()['State']
-        generating = report_state != 'COMPLETE'
-        while generating:
-            time.sleep(0.25)
-            report_state = iam.generate_credential_report()['State']
-            generating = report_state != 'COMPLETE'
-        creds_csv = iam.get_credential_report()['Content'].decode('UTF-8')
+        iam = client(context, profile)
+        creds_csv = get_credential_report(context, profile)
         for row in creds_csv.split('\n')[1:]:
             col = row.split(',')
             user = col[0]
@@ -60,7 +55,7 @@ class CredentialReport(Scan):
                 key1 = col[8]
                 key2 = col[13]
                 if key1 == 'true' or key2 == 'true':
-                    return [Finding('iam_rootkey', self.title, 'HIGH')]
+                    return [Finding(context.state, self.title, 'HIGH')]
         return []
 
 
@@ -69,18 +64,18 @@ class PasswordPolicy(Scan):
     permissions = ['iam:GetAccountPasswordPolicy']
 
     def run(self, context, profile=None):
-        iam = client(context)
+        iam = client(context, profile)
         try:
             policy = resources(context).AccountPasswordPolicy()
             policy.load()
         except iam.exceptions.NoSuchEntityException:
-            return [Finding('iam_no_passpol',
-                            'No AWS account-level password policy', 'MEDIUM')]
+            return [Finding(context.state,
+                            'No AWS account-level password policy', 'HIGH')]
         # TODO define and add findings for weak password policies
         return []
 
 
 scans = ScanSuite('IAM Scans',
                   {'mfa': MfaScan(),
-                   'credentials': CredentialReport(),
+                   'rootkey': RootAccessKey(),
                    'password_policy': PasswordPolicy()})

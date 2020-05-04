@@ -11,15 +11,21 @@ def add_context_to_argparse(parser):
 
 
 class Context(object):
-    def __init__(self, profiles, regions):
+    def __init__(self, profiles, regions, output='stdout'):
+        # Profiles are the credential sets to use
         if ',' in profiles:
             self.profiles = profiles.split(',')
         else:
             self.profiles = [profiles]
+        # Regions specify the regions to work with, when supported
         if ',' in regions:
             self.regions = regions.split(',')
         else:
             self.regions = [regions]
+        # Output gives other code a way to determine output format
+        self.output = output
+        # State is a flexible member that can be used to track within a command
+        self.state = None
 
     def get_credentials(self, profile_name=None):
         if profile_name is None:

@@ -28,9 +28,10 @@ Runs like a standard python app, `-h` can help you find the small set of support
 ```
 Usage: scanamabob <command> [-h] [command-specific-arguments]
 
-Scanamabob v0.0.1 - AWS Security Tooling
+Scanamabob v0.0.2 - AWS Security Tooling
 
-  s3audit  -  Identify publicly accessible S3 buckets and objects
+This tool is in a very early phase of development and is undergoing active development. Many desired features are currently missing and incomplete. Early release of this version through PyPI is intended to generate useful feedback from potential users.
+
   scan     -  Scan AWS environment for common security misconfigurations
 ```
 

@@ -10,21 +10,24 @@ import scanamabob.scans.cloudtrail as cloudtrail
 import scanamabob.scans.elb as elb
 import scanamabob.scans.rds as rds
 from scanamabob.context import Context, add_context_to_argparse
+from scanamabob.services.ec2 import get_regions
+
 
 DESCRIPTION = 'Scan AWS environment for common security misconfigurations'
-USAGE = f'''scanamabob scan [-h] [-p] [-l] [scantypes] [...]'''
+USAGE = f'''scanamabob scan [-h] [-l] [-p] [-r regions] [-P profiles] \
+[scantypes] [...]'''
 parser = ArgumentParser(description=DESCRIPTION,
                         usage=USAGE)
-# parser.add_argument('-o', '--output', choices=['stdout', 'json'],
-#                     default='stdout',
-#                     help="Output format for scan (default: stdout)")
-parser.add_argument('scantypes', nargs='*',
-                    help="Specific scan suite or individual scan to run (eg. iam.mfa)")
-parser.add_argument('-p', '--permissions', action='store_true',
-                    help="Return IAM Policy JSON needed to complete scan")
+parser.add_argument('-o', '--output', choices=['stdout', 'json'],
+                    default='stdout',
+                    help="Output format for scan (default: stdout)")
 parser.add_argument('-l', '--list-scans', action='store_true',
                     help="List the scans available to run")
+parser.add_argument('-p', '--permissions', action='store_true',
+                    help="Return IAM Policy JSON needed to complete scan")
 add_context_to_argparse(parser)
+parser.add_argument('scantypes', nargs='*',
+                    help="Specific scan suites or individual scans to run")
 
 
 scan_suites = {
@@ -42,13 +45,29 @@ def scan_targets_valid(scanlist):
     for i in scanlist:
         if '.' in i:
             suite, scan = i.split('.')
-            if suite not in scan_suites or scan not in scan_suites[suite].scans:
-                print(f'{target} is not a valid scan')
+            if suite not in scan_suites:
+                print(f'{suite} is not a valid scan suite')
+                valid = False
+            elif scan not in scan_suites[suite].scans:
+                print(f'{scan} not a valid scan in {suite} suite')
                 valid = False
         else:
             if i not in scan_suites:
                 print(f'{i} is not a valid scan suite')
                 valid = False
+    return valid
+
+
+def scan_regions_valid(context):
+    # Special case for all
+    if '*' in context.regions:
+        return True
+
+    valid = True
+    for region in context.regions:
+        if region not in get_regions(context, None):
+            print(f'{region} was not found to be a valid region')
+            valid = False
     return valid
 
 
@@ -61,10 +80,12 @@ def run_scans(scantypes, context):
         if scantypes:
             # Run user specified scans
             for scantype in scantypes:
+                context.state = scantype
                 if '.' in scantype:
                     suite, target = scantype.split('.')
                     scan = scan_suites[suite].scans[target]
-                    print(' - Running Scan "{}"'.format(scan.title))
+                    if context.output == 'stdout':
+                        print(' - Running Scan "{}"'.format(scan.title))
                     scan_findings = scan.run(context, profile)
                     findings[profile].extend()
                 else:
@@ -77,12 +98,21 @@ def run_scans(scantypes, context):
                 suite_findings = scan_suites[suite].run(context, profile)
                 findings[profile].extend(suite_findings)
 
-    print('\n{} total finding(s) from scan:'.format(len(findings)))
+    if context.output == 'stdout':
+        print('\n{} total finding(s) from scan:'.format(len(findings)))
 
-    for profile in findings:
-        print(f'Findings from {profile} profile:')
-        for finding in findings[profile]:
-            print(finding.__dict__)
+        for profile in findings:
+            print(f'Findings from "{profile}" profile:')
+            for finding in findings[profile]:
+                print(finding.as_stdout())
+    else:
+        # ELSE WE J... SON
+        findings_json = {}
+        for profile in findings:
+            findings_json[profile] = []
+            for finding in findings[profile]:
+                findings_json[profile].append(finding.as_dict())
+        print(json.dumps(findings_json, indent=4))
 
 
 def get_permissions(scantypes):
@@ -119,6 +149,7 @@ def get_permissions(scantypes):
             }
         ]
     }
+
     print(json.dumps(policy, sort_keys=True, indent=4))
 
 
@@ -139,12 +170,18 @@ def command(args):
         print('Invalid scan types provided, scan cancelled')
         sys.exit(1)
 
-    context = Context(arguments.profiles, arguments.regions)
+    context = Context(arguments.profiles, arguments.regions, arguments.output)
 
-    if arguments.permissions:
-        get_permissions(arguments.scantypes)
-    elif arguments.list_scans:
+    # This is validated after building context because the context is used to
+    # enumerate regions
+    if not scan_regions_valid(context):
+        print('Invalid regions provided, scan cancelled')
+        sys.exit(1)
+
+    if arguments.list_scans:
         list_scans()
+    elif arguments.permissions:
+        get_permissions(arguments.scantypes)
     else:
         run_scans(arguments.scantypes, context)
 

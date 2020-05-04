@@ -1,15 +1,18 @@
 import setuptools
 
-#with open("README.md", "r") as fh:
-#    long_description = '# Scanamabob'
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
+with open("requirements.txt") as fp:
+    requirements = fp.readlines()
 
 setuptools.setup(
     name="scanamabob",
-    version="0.0.1",
+    version="0.0.2",
     author="Carve Systems, LLC.",
     author_email="kenneth.wilke@carvesystems.com",
     description="A security toolkit for AWS based environments",
-    long_description='# Scanamabob',
+    long_description='# Scanamabob!',
     long_description_content_type="text/markdown",
     url="https://github.com/CarveSystems/scanamabob",
     packages=setuptools.find_packages(),
@@ -22,9 +25,7 @@ setuptools.setup(
         "Topic :: Utilities"
     ],
     scripts=['scripts/scanamabob'],
-    install_requires=[
-        'boto3>=1.12.48'
-    ],
+    install_requires=requirements,
     python_requires='>=3.6',
 )
 

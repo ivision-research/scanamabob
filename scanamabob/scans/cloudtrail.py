@@ -1,9 +1,8 @@
 import boto3
-import os
+import sys
 from scanamabob.scans import Finding, Scan, ScanSuite
-from .ec2 import get_regions
-
-cloudtrail = boto3.client('cloudtrail')
+from scanamabob.services.ec2 import get_regions
+from scanamabob.services.cloudtrail import client
 
 
 class LogFileValidation(Scan):
@@ -11,12 +10,18 @@ class LogFileValidation(Scan):
     permissions = ['']
 
     def run(self, context, profile=None):
-        findings = []
+        cloudtrail = client(context, profile)
         trails = []
         log_validation_disabled = []
         trailcount = 0
-        for region in get_regions():
-            region_client = boto3.client('cloudtrail', region_name=region)
+
+        if '*' in context.regions:
+            regions = get_regions(context, profile)
+        else:
+            regions = context.regions
+
+        for region in regions:
+            region_client = client(context, profile, region_name=region)
             for trail in region_client.describe_trails()['trailList']:
                 if trail['TrailARN'] in trails:
                     continue
@@ -26,11 +31,10 @@ class LogFileValidation(Scan):
                     log_validation_disabled.append(friendly_name)
 
         if len(log_validation_disabled):
-            finding = Finding('cloudtrail_integrity',
-                              'CloudTrail log validation disabled',
-                              'LOW', trails=log_validation_disabled)
-            findings.append(finding)
-        return findings
+            return [Finding(context.state,
+                            'CloudTrail log validation disabled',
+                            'LOW', trails=log_validation_disabled)]
+        return []
 
 
 scans = ScanSuite('CloudTrail Scans',

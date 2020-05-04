@@ -1,67 +1,7 @@
 import boto3
 import os
 from scanamabob.scans import Finding, Scan, ScanSuite
-
-ec2 = boto3.client('ec2')
-
-
-def get_regions():
-    return [i['RegionName'] for i in ec2.describe_regions()['Regions']]
-
-
-def _get_region_instances(region_name):
-    region = boto3.resource('ec2', region_name=region_name)
-    return region.instances.all()
-
-
-def tee(fp, msg):
-    print(msg)
-    fp.write(msg + '\n')
-
-
-def _dump_intance(path, region, instance):
-    name = 'Unnamed Instance'
-    if instance.tags:
-        for tag in instance.tags:
-            key, value = tag['Key'], tag['Value']
-            if key == 'Name':
-                name = value
-
-    inst_path = '{}/ec2/{}/'.format(path, region)
-    if not os.path.exists(inst_path):
-        os.makedirs(inst_path)
-    with open('{}/{}.md'.format(inst_path, instance.id), 'w') as fp:
-        tee(fp, f'# EC2 Instance ({name})\n')
-
-        tee(fp, f'Instance ID: `{instance.id}`')
-        state = instance.state['Name']
-        tee(fp, f'State: `{state}`\n')
-
-        tee(fp, '## Network interfaces')
-        for iface in instance.network_interfaces_attribute:
-            print(iface)
-#        tee(fp, f'VPC ID: `{instance.vpc_id}`')
-#        tee(fp, f'Public IP: `{instance.public_ip_address}`')
-#        tee(fp, f'Public DNS: `{instance.public_dns_name}`')
-#        tee(fp, f'Private IP: `{instance.private_ip_address}`')
-#        tee(fp, f'Private DNS: `{instance.private_dns_name}`\n')
-
-
-def summary():
-    ec2_regions = get_regions()
-
-    instances = 0
-    for region_name in ec2_regions:
-        for instance in _get_region_instances(region_name):
-            instances += 1
-    print('- {} EC2 instances'.format(instances))
-
-
-def dump(path):
-    ec2_regions = get_regions()
-    for region_name in ec2_regions:
-        for instance in _get_region_instances(region_name):
-            _dump_intance(path, region_name, instance)
+from scanamabob.services.ec2 import client, get_regions, get_region_instances
 
 
 class EncryptionScan(Scan):
@@ -75,8 +15,8 @@ class EncryptionScan(Scan):
         # { 'region': [instances, affected] }
         unencrypted = {}
 
-        for region in get_regions():
-            region_client = boto3.client('ec2', region_name=region)
+        for region in get_regions(context, profile):
+            region_client = client(context, profile, region_name=region)
             paginator = region_client.get_paginator('describe_volumes')
             for page in paginator.paginate():
                 for volume in page['Volumes']:
