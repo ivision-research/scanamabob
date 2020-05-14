@@ -1,20 +1,10 @@
 import boto3
 from botocore.exceptions import ClientError
 from scanamabob.scans import Finding, Scan, ScanSuite
-
-s3 = boto3.client('s3')
-resources = boto3.resource('s3')
-control = boto3.client('s3control')
-PUBLIC_URI = 'http://acs.amazonaws.com/groups/global/AllUsers'
-ENC_NOT_FOUND = 'ServerSideEncryptionConfigurationNotFoundError'
-
-
-def _get_all_buckets():
-    return [x['Name'] for x in s3.list_buckets()['Buckets']]
-
-
-def _get_accountid():
-    return boto3.client('sts').get_caller_identity().get('Account')
+from scanamabob.services.sts import get_accountid
+from scanamabob.services.s3 import client, resources, control, \
+    get_all_buckets, get_account_public_access, PUBLIC_URI, \
+    get_bucket_policy, ENC_NOT_FOUND
 
 
 class PermissionScan(Scan):
@@ -23,9 +13,10 @@ class PermissionScan(Scan):
                    's3:GetBucketPublicAccessBlock',
                    'iam:GetUser']
 
-    def run(self, context, profile=None):
-        buckets = _get_all_buckets()
+    def run(self, context, profile):
+        buckets = get_all_buckets(context, profile)
         findings = []
+        s3 = client(context, profile)
 
         # No buckets? No problem!
         if not len(buckets):
@@ -35,9 +26,7 @@ class PermissionScan(Scan):
         # TODO: This means of getting the account id works but is weak, and
         #       likely breaks if ran cross-organizationally
         try:
-            acctid = _get_accountid()
-            acct_pub_block = control.get_public_access_block(AccountId=acctid)
-            acct_pub_access = acct_pub_block['PublicAccessBlockConfiguration']
+            acct_pub_access = get_account_public_access(context, profile)
             # This will be true if public access is blocked for the account
             acct_pub_blocked = (acct_pub_access['IgnorePublicAcls'] and
                                 acct_pub_access['RestrictPublicBuckets'])
@@ -109,18 +98,18 @@ class EncryptionScan(Scan):
     title = 'Scanning S3 buckets for encryption'
     permissions = ['s3:ListAllMyBuckets', 's3:GetEncryptionConfiguration']
 
-    def run(self, context, profile=None):
+    def run(self, context, profile):
+        s3 = client(context, profile)
         without = []
-        for bucket in _get_all_buckets():
+        for bucket in get_all_buckets(context, profile):
             try:
                 # Most operations are region independent, but sometimes you
                 # have to request encryption from the region the bucket
                 # resides in
                 location = s3.get_bucket_location(Bucket=bucket)['LocationConstraint']
-                client = s3
                 if location:
-                    client = boto3.client('s3', region_name=location)
-                enc = client.get_bucket_encryption(Bucket=bucket)['ServerSideEncryptionConfiguration']
+                    s3 = client(context, profile, region_name=location)
+                enc = s3.get_bucket_encryption(Bucket=bucket)['ServerSideEncryptionConfiguration']
                 # If we get this far, there should be defined encryption :good:
             except ClientError as err:
                 # Best way I've found to handle the error raised when a bucket

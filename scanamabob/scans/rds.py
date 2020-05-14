@@ -1,5 +1,5 @@
 import boto3
-from .ec2 import get_regions
+from scanamabob.services.ec2 import get_regions
 from scanamabob.scans import Finding, Scan, ScanSuite
 
 rds = boto3.client('rds')
@@ -15,7 +15,7 @@ class EncryptionScan(Scan):
         unenc_count = 0
         unenc = {}
 
-        for region in get_regions():
+        for region in get_regions(context, profile):
             rds = boto3.client('rds', region_name=region)
             for page in rds.get_paginator('describe_db_instances').paginate():
                 for db in page['DBInstances']:
