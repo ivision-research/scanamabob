@@ -18,7 +18,7 @@ class Scan(object):
     permissions = []
     finding_template = None
 
-    def run(self, context, profile=None):
+    def run(self, context):
         print('Scan "{}" has no defined run method'.format(self.title))
         return []
 
@@ -29,7 +29,7 @@ class ScanSuite(object):
         self.title = title
         self.scans = scans
 
-    def run(self, context, profile=None):
+    def run(self, context):
         if context.output == 'stdout':
             print('Running Scan Suite "{}"'.format(self.title))
         findings = []
@@ -39,7 +39,7 @@ class ScanSuite(object):
             scan = self.scans[scantype]
             if context.output == 'stdout':
                 print(' - Running Scan "{}"'.format(scan.title))
-            findings.extend(scan.run(context, profile))
+            findings.extend(scan.run(context))
         return findings
 
     def get_permissions(self):

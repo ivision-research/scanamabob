@@ -1,38 +1,28 @@
-import boto3
-
 __cache_regions = {}
 
 
-def client(context, profile=None, **kwargs):
+def client(context, **kwargs):
     ''' Return an EC2 client handle for the given context and profile '''
-    access_key, secret = context.get_credentials(profile)
-    return boto3.client('ec2',
-                        aws_access_key_id=access_key,
-                        aws_secret_access_key=secret,
-                        **kwargs)
+    return context.session.client('ec2', **kwargs)
 
 
-def resources(context, profile=None, **kwargs):
+def resources(context, **kwargs):
     ''' Return an EC2 resource handle for the given context and profile '''
-    access_key, secret = context.get_credentials(profile)
-    return boto3.resource('ec2',
-                          aws_access_key_id=access_key,
-                          aws_secret_access_key=secret,
-                          **kwargs)
+    return context.session.resource('ec2', **kwargs)
 
 
-def get_regions(context, profile):
+def get_regions(context):
     ''' Get all EC2 Regions. Caches result '''
-    if profile in __cache_regions:
-        return __cache_regions[profile]
+    if context.current_profile in __cache_regions:
+        return __cache_regions[context.current_profile]
 
-    ec2 = client(context, profile)
+    ec2 = client(context)
 
     regions = [i['RegionName'] for i in ec2.describe_regions()['Regions']]
-    __cache_regions[profile] = regions
+    __cache_regions[context.current_profile] = regions
     return regions
 
 
-def get_region_instances(context, profile, region_name):
-    region = resources(context, profile, region_name=region_name)
+def get_region_instances(context, region_name):
+    region = resources(context, region_name=region_name)
     return region.instances.all()

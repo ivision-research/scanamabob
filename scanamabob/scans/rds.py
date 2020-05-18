@@ -9,13 +9,13 @@ class EncryptionScan(Scan):
     title = 'Verifying RDS instances have encryption enabled'
     permissions = ['']
 
-    def run(self, context, profile=None):
+    def run(self, context):
         findings = []
         rds_count = 0
         unenc_count = 0
         unenc = {}
 
-        for region in get_regions(context, profile):
+        for region in get_regions(context):
             rds = boto3.client('rds', region_name=region)
             for page in rds.get_paginator('describe_db_instances').paginate():
                 for db in page['DBInstances']:

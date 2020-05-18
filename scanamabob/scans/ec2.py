@@ -8,15 +8,15 @@ class EncryptionScan(Scan):
     title = 'Scanning EC2 instances for EBS volume encryption'
     permissions = ['']
 
-    def run(self, context, profile=None):
+    def run(self, context):
         findings = []
         total_volumes = 0
         unencrypted_volumes = 0
         # { 'region': [instances, affected] }
         unencrypted = {}
 
-        for region in get_regions(context, profile):
-            region_client = client(context, profile, region_name=region)
+        for region in get_regions(context):
+            region_client = client(context, region_name=region)
             paginator = region_client.get_paginator('describe_volumes')
             for page in paginator.paginate():
                 for volume in page['Volumes']:

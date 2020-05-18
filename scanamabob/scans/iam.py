@@ -9,13 +9,13 @@ class MfaScan(Scan):
     permissions = ['iam:ListUsers', 'iam:ListMFADevices',
                    'iam:GetLoginProfile']
 
-    def run(self, context, profile=None):
-        usernames = get_all_users(context, profile)
+    def run(self, context):
+        usernames = get_all_users(context)
         users_without_mfa = []
-        iam = client(context, profile)
+        iam = client(context)
 
         for username in usernames:
-            user = resources(context, profile).User(username)
+            user = resources(context).User(username)
 
             # Determine if user has a login profile (Console access)
             try:
@@ -45,9 +45,9 @@ class RootAccessKey(Scan):
     title = 'AWS Account with enabled Root Access Key'
     permissions = ['iam:GenerateCredentialReport', 'iam:GetCredentialReport']
 
-    def run(self, context, profile=None):
-        iam = client(context, profile)
-        creds_csv = get_credential_report(context, profile)
+    def run(self, context):
+        iam = client(context)
+        creds_csv = get_credential_report(context)
         for row in creds_csv.split('\n')[1:]:
             col = row.split(',')
             user = col[0]
@@ -63,8 +63,8 @@ class PasswordPolicy(Scan):
     title = 'Checking AWS account password policies'
     permissions = ['iam:GetAccountPasswordPolicy']
 
-    def run(self, context, profile=None):
-        iam = client(context, profile)
+    def run(self, context):
+        iam = client(context)
         try:
             policy = resources(context).AccountPasswordPolicy()
             policy.load()

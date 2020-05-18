@@ -9,19 +9,19 @@ class LogFileValidation(Scan):
     title = 'Verifying log file validation on all CloudTrails'
     permissions = ['']
 
-    def run(self, context, profile=None):
-        cloudtrail = client(context, profile)
+    def run(self, context):
+        cloudtrail = client(context)
         trails = []
         log_validation_disabled = []
         trailcount = 0
 
         if '*' in context.regions:
-            regions = get_regions(context, profile)
+            regions = get_regions(context)
         else:
             regions = context.regions
 
         for region in regions:
-            region_client = client(context, profile, region_name=region)
+            region_client = client(context, region_name=region)
             for trail in region_client.describe_trails()['trailList']:
                 if trail['TrailARN'] in trails:
                     continue

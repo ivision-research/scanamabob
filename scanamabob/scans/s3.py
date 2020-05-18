@@ -13,10 +13,10 @@ class PermissionScan(Scan):
                    's3:GetBucketPublicAccessBlock',
                    'iam:GetUser']
 
-    def run(self, context, profile):
-        buckets = get_all_buckets(context, profile)
+    def run(self, context):
+        buckets = get_all_buckets(context)
         findings = []
-        s3 = client(context, profile)
+        s3 = client(context)
 
         # No buckets? No problem!
         if not len(buckets):
@@ -26,7 +26,7 @@ class PermissionScan(Scan):
         # TODO: This means of getting the account id works but is weak, and
         #       likely breaks if ran cross-organizationally
         try:
-            acct_pub_access = get_account_public_access(context, profile)
+            acct_pub_access = get_account_public_access(context)
             # This will be true if public access is blocked for the account
             acct_pub_blocked = (acct_pub_access['IgnorePublicAcls'] and
                                 acct_pub_access['RestrictPublicBuckets'])
@@ -98,17 +98,17 @@ class EncryptionScan(Scan):
     title = 'Scanning S3 buckets for encryption'
     permissions = ['s3:ListAllMyBuckets', 's3:GetEncryptionConfiguration']
 
-    def run(self, context, profile):
-        s3 = client(context, profile)
+    def run(self, context):
+        s3 = client(context)
         without = []
-        for bucket in get_all_buckets(context, profile):
+        for bucket in get_all_buckets(context):
             try:
                 # Most operations are region independent, but sometimes you
                 # have to request encryption from the region the bucket
                 # resides in
                 location = s3.get_bucket_location(Bucket=bucket)['LocationConstraint']
                 if location:
-                    s3 = client(context, profile, region_name=location)
+                    s3 = client(context, region_name=location)
                 enc = s3.get_bucket_encryption(Bucket=bucket)['ServerSideEncryptionConfiguration']
                 # If we get this far, there should be defined encryption :good:
             except ClientError as err:

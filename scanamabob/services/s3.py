@@ -8,48 +8,36 @@ ENC_NOT_FOUND = 'ServerSideEncryptionConfigurationNotFoundError'
 __cache_buckets = {}
 
 
-def client(context, profile, **kwargs):
+def client(context, **kwargs):
     ''' Return an S3 client handle for the given context and profile '''
-    access_key, secret = context.get_credentials(profile)
-    return boto3.client('s3',
-                        aws_access_key_id=access_key,
-                        aws_secret_access_key=secret,
-                        **kwargs)
+    return context.session.client('s3', **kwargs)
 
 
-def resources(context, profile=None, **kwargs):
+def resources(context, **kwargs):
     ''' Return an S3 resource handle for the given context and profile '''
-    access_key, secret = context.get_credentials(profile)
-    return boto3.resource('s3',
-                          aws_access_key_id=access_key,
-                          aws_secret_access_key=secret,
-                          **kwargs)
+    return context.session.resource('s3', **kwargs)
 
 
-def control(context, profile, **kwargs):
+def control(context, **kwargs):
     ''' Return an S3 resource handle for the given context and profile '''
-    access_key, secret = context.get_credentials(profile)
-    return boto3.client('s3control',
-                        aws_access_key_id=access_key,
-                        aws_secret_access_key=secret,
-                        **kwargs)
+    return context.session.client('s3control', **kwargs)
 
 
-def get_all_buckets(context, profile):
+def get_all_buckets(context):
     ''' Lists all buckets for an account. Caches results '''
-    if profile in __cache_buckets:
-        return __cache_buckets[profile]
+    if context.current_profile in __cache_buckets:
+        return __cache_buckets[context.current_profile]
 
-    bucketrequest = client(context, profile).list_buckets()
+    bucketrequest = client(context).list_buckets()
     buckets = [x['Name'] for x in bucketrequest['Buckets']]
 
-    __cache_buckets[profile] = buckets
+    __cache_buckets[context.current_profile] = buckets
     return buckets
 
 
-def get_account_public_access(context, profile):
-    account = get_accountid(context, profile)
-    ctrl = control(context, profile)
+def get_account_public_access(context):
+    account = get_accountid(context)
+    ctrl = control(context)
     try:
         pub_block = ctrl.get_public_access_block(AccountId=account)
     except ctrl.exceptions.NoSuchPublicAccessBlockConfiguration:
@@ -61,8 +49,8 @@ def get_account_public_access(context, profile):
     return pub_block['PublicAccessBlockConfiguration']
 
 
-def get_bucket_public_access(context, profile, bucket):
-    s3 = client(context, profile)
+def get_bucket_public_access(context, bucket):
+    s3 = client(context)
     try:
         pub_block = s3.get_public_access_block(Bucket=bucket)
     except:
@@ -73,13 +61,13 @@ def get_bucket_public_access(context, profile, bucket):
     return pub_block['PublicAccessBlockConfiguration']
 
 
-def get_bucket_acl(context, profile, bucket):
-    s3 = client(context, profile)
+def get_bucket_acl(context, bucket):
+    s3 = client(context)
     return s3.get_bucket_acl(Bucket=bucket)
 
 
-def get_bucket_policy(context, profile, bucket):
-    s3 = client(context, profile)
+def get_bucket_policy(context, bucket):
+    s3 = client(context)
     try:
         return json.loads(s3.get_bucket_policy(Bucket=bucket)['Policy'])
     except botocore.exceptions.ClientError as err:
@@ -88,8 +76,8 @@ def get_bucket_policy(context, profile, bucket):
         return None
 
 
-def get_bucket_settings(context, profile, bucket):
-    s3 = client(context, profile)
+def get_bucket_settings(context, bucket):
+    s3 = client(context)
     settings = {}
 
     versioning = s3.get_bucket_versioning(Bucket=bucket)
@@ -126,17 +114,17 @@ def get_bucket_settings(context, profile, bucket):
     return settings
 
 
-def iter_bucket_objects(context, profile, bucket):
-    paginator = client(context, profile).get_paginator('list_objects_v2')
+def iter_bucket_objects(context, bucket):
+    paginator = client(context).get_paginator('list_objects_v2')
     for objects_page in paginator.paginate(Bucket=bucket):
         if 'Contents' in objects_page:
             for s3_object in objects_page['Contents']:
                 yield s3_object
 
 
-def get_object_acl(context, profile, bucket, key):
-    return resources(context, profile).ObjectAcl(bucket, key)
+def get_object_acl(context, bucket, key):
+    return resources(context).ObjectAcl(bucket, key)
 
 
-def get_owner_id(context, profile):
-    return client(context, profile).list_buckets()['Owner']['ID']
+def get_owner_id(context):
+    return client(context).list_buckets()['Owner']['ID']

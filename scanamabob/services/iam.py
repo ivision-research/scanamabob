@@ -5,29 +5,23 @@ __cache_all_users = {}
 __cache_credential_report = {}
 
 
-def client(context, profile=None):
+def client(context, **kwargs):
     ''' Return an IAM client handle for the given context and profile '''
-    access_key, secret = context.get_credentials(profile)
-    return boto3.client('iam',
-                        aws_access_key_id=access_key,
-                        aws_secret_access_key=secret)
+    return context.session.client('iam', **kwargs)
 
 
-def resources(context, profile=None):
+def resources(context, **kwargs):
     ''' Return an IAM resource handle for the given context and profile '''
-    access_key, secret = context.get_credentials(profile)
-    return boto3.resource('iam',
-                          aws_access_key_id=access_key,
-                          aws_secret_access_key=secret)
+    return boto3.resource('iam', **kwargs)
 
 
-def get_all_users(context, profile=None):
+def get_all_users(context):
     ''' Gets a list of all users. Caches results '''
     # Use cached list if available
-    if profile in __cache_all_users:
-        return __cache_all_users[profile]
+    if context.current_profile in __cache_all_users:
+        return __cache_all_users[context.current_profile]
 
-    iam = client(context, profile)
+    iam = client(context)
 
     # Iterate through pages to gather the list of users
     usernames = []
@@ -36,22 +30,22 @@ def get_all_users(context, profile=None):
             usernames.append(user['UserName'])
 
     # Cache result for future requests
-    __cache_all_users[profile] = usernames
+    __cache_all_users[context.current_profile] = usernames
     return usernames
 
 
-def get_credential_report(context, profile=None):
+def get_credential_report(context):
     ''' Get the latest credential report from IAM. Caches results '''
     # Use cached report if available
-    if profile in __cache_credential_report:
-        return __cache_credential_report[profile]
+    if context.current_profile in __cache_credential_report:
+        return __cache_credential_report[context.current_profile]
 
-    iam = client(context, profile)
+    iam = client(context)
 
     # Use existing report if one already exists
     try:
         creds_csv = iam.get_credential_report()['Content'].decode('UTF-8')
-        __cache_credential_report[profile] = creds_csv
+        __cache_credential_report[context.current_profile] = creds_csv
         return creds_csv
     except iam.exceptions.CredentialReportNotPresentException:
         # This is normal when there's no existing report
@@ -71,5 +65,5 @@ def get_credential_report(context, profile=None):
     creds_csv = iam.get_credential_report()['Content'].decode('UTF-8')
 
     # Cache result for future requests
-    __cache_credential_report[profile] = creds_csv
+    __cache_credential_report[context.current_profile] = creds_csv
     return creds_csv
