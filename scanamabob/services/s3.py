@@ -14,12 +14,12 @@ def client(context, **kwargs):
 
 
 def resources(context, **kwargs):
-    ''' Return an S3 resource handle for the given context and profile '''
+    ''' Return an S3 resource handle for the given context '''
     return context.session.resource('s3', **kwargs)
 
 
 def control(context, **kwargs):
-    ''' Return an S3 resource handle for the given context and profile '''
+    ''' Return an S3 control handle for the given context '''
     return context.session.client('s3control', **kwargs)
 
 

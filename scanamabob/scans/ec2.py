@@ -1,4 +1,3 @@
-import boto3
 import os
 from scanamabob.scans import Finding, Scan, ScanSuite
 from scanamabob.services.ec2 import client, get_regions, get_region_instances
@@ -28,7 +27,7 @@ class EncryptionScan(Scan):
                         unencrypted[region].append(volume['VolumeId'])
 
         if unencrypted_volumes:
-            finding = Finding('ebs_encryption',
+            finding = Finding(context.state,
                               'EBS block storage volumes without encryption',
                               'MEDIUM',
                               count_total=total_volumes,

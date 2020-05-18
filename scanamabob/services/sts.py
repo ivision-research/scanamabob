@@ -4,7 +4,7 @@ from scanamabob.scans import Finding, Scan, ScanSuite
 
 
 def client(context, **kwargs):
-    ''' Return a STS client handle for the given context and profile '''
+    ''' Return a STS client handle for the given context '''
     return context.session.client('sts', **kwargs)
 
 

@@ -1,8 +1,5 @@
-import boto3
-from scanamabob.services.ec2 import get_regions
+from scanamabob.services.rds import client
 from scanamabob.scans import Finding, Scan, ScanSuite
-
-rds = boto3.client('rds')
 
 
 class EncryptionScan(Scan):
@@ -15,8 +12,8 @@ class EncryptionScan(Scan):
         unenc_count = 0
         unenc = {}
 
-        for region in get_regions(context):
-            rds = boto3.client('rds', region_name=region)
+        for region in context.regions:
+            rds = client(context, region_name=region)
             for page in rds.get_paginator('describe_db_instances').paginate():
                 for db in page['DBInstances']:
                     rds_count += 1
@@ -27,7 +24,7 @@ class EncryptionScan(Scan):
                         unenc[region].append(db['DBInstanceIdentifier'])
 
         if unenc_count:
-            findings.append(Finding('rds_unencrypted',
+            findings.append(Finding(context.state,
                                     'RDS instances without encryption',
                                     'LOW',
                                     rds_count=rds_count,

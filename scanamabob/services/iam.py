@@ -6,13 +6,13 @@ __cache_credential_report = {}
 
 
 def client(context, **kwargs):
-    ''' Return an IAM client handle for the given context and profile '''
+    ''' Return an IAM client handle for the given context '''
     return context.session.client('iam', **kwargs)
 
 
 def resources(context, **kwargs):
-    ''' Return an IAM resource handle for the given context and profile '''
-    return boto3.resource('iam', **kwargs)
+    ''' Return an IAM resource handle for the given context '''
+    return context.session.resource('iam', **kwargs)
 
 
 def get_all_users(context):

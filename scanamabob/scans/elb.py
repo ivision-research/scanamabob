@@ -1,5 +1,4 @@
-import boto3
-from scanamabob.services.ec2 import get_regions
+from scanamabob.services.elb import client, v2_client
 from scanamabob.scans import Finding, Scan, ScanSuite
 
 
@@ -13,8 +12,8 @@ class AccessLogScan(Scan):
         elb_count = 0
         disabled_count = 0
 
-        for region in get_regions(context):
-            elb = boto3.client('elb', region_name=region)
+        for region in context.regions:
+            elb = client(context, region_name=region)
             for page in elb.get_paginator('describe_load_balancers').paginate():
                 for lb in page['LoadBalancerDescriptions']:
                     elb_count += 1
@@ -26,7 +25,7 @@ class AccessLogScan(Scan):
                         if region not in accesslogs_disabled:
                             accesslogs_disabled[region] = []
                         accesslogs_disabled[region].append(name)
-            elbv2 = boto3.client('elbv2', region_name=region)
+            elbv2 = v2_client(context, region_name=region)
             # Same thing, for v2 ELBs
             for page in elbv2.get_paginator('describe_load_balancers').paginate():
                 for lb in page['LoadBalancers']:
@@ -44,7 +43,7 @@ class AccessLogScan(Scan):
                             accesslogs_disabled[region].append(name)
 
         if disabled_count:
-            findings.append(Finding('elb_accesslogs',
+            findings.append(Finding(context.state,
                                     'ELB Instances with Access Logs disabled',
                                     'LOW',
                                     elb_count=elb_count,
@@ -64,8 +63,8 @@ class DeleteProtectScan(Scan):
         elb_count = 0
         disabled_count = 0
 
-        for region in get_regions(context):
-            elbv2 = boto3.client('elbv2', region_name=region)
+        for region in context.regions:
+            elbv2 = v2_client(context, region_name=region)
             for page in elbv2.get_paginator('describe_load_balancers').paginate():
                 for lb in page['LoadBalancers']:
                     elb_count += 1
@@ -82,7 +81,7 @@ class DeleteProtectScan(Scan):
                             dltpt_disabled[region].append(name)
 
         if disabled_count:
-            findings.append(Finding('elb_deleteprotect',
+            findings.append(Finding(context.state,
                                     'ELBv2 Instances with Delete Protection disabled',
                                     'LOW',
                                     elb_count=elb_count,

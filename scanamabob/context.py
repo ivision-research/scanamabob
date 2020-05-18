@@ -22,7 +22,6 @@ class Context(object):
             self.profiles = filtered
         else:
             self.profiles = [profiles]
-        print(self.profiles)
 
         # Current running profile of the context
         if 'default' in self.profiles:

@@ -83,7 +83,7 @@ class PermissionScan(Scan):
                 sev = 'HIGH'
                 title = 'World writable S3 Buckets'
 
-            findings.append(Finding('s3_acls', title, sev,
+            findings.append(Finding(context.state, title, sev,
                             acls_write=acls_write,
                             acls_mitigated=acls_mitigated,
                             acls_readonly=acls_readonly))
@@ -119,7 +119,7 @@ class EncryptionScan(Scan):
                 else:
                     without.append(bucket)
         if len(without):
-            return [Finding('s3_encryption', 'S3 buckets without encryption',
+            return [Finding(context.state, 'S3 buckets without encryption',
                             'MEDIUM',
                             buckets=without)]
         return []

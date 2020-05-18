@@ -81,6 +81,7 @@ def run_scans(scantypes, context):
         else:
             # Run all scans
             for suite in scan_suites:
+                context.state = suite
                 suite_findings = scan_suites[suite].run(context)
                 findings[profile].extend(suite_findings)
 
