@@ -62,7 +62,9 @@ def run_scans(scantypes, context):
     findings = {}
 
     for profile in context.profiles:
-        context.current_profile = profile
+        if context.output == 'stdout':
+            print(f'- Scanning {profile} profile')
+        context.set_profile(profile)
         findings[profile] = []
         if scantypes:
             # Run user specified scans
