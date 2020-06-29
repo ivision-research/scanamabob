@@ -1,4 +1,4 @@
-import boto3
+from datetime import datetime, timezone
 from scanamabob.scans import Finding, Scan, ScanSuite
 from scanamabob.services.iam import client, resources, get_all_users, \
     get_credential_report
@@ -75,7 +75,41 @@ class PasswordPolicy(Scan):
         return []
 
 
+class KeyRotation(Scan):
+    title = 'Checking for old AWS access keys'
+    permissions = []
+
+    def run(self, context):
+        year_plus = []
+        ninetydays_plus = []
+        iam = client(context)
+        for user in get_all_users(context):
+            keys = iam.list_access_keys(UserName=user)['AccessKeyMetadata']
+            for key in keys:
+                created = key['CreateDate']
+                now = datetime.now(timezone.utc)
+                delta_days = (now - created).days
+                if delta_days >= 365:
+                    year_plus.append(user)
+                elif delta_days >= 90:
+                    ninetydays_plus.append(user)
+        if len(year_plus):
+            return [Finding(context.state,
+                            'Access keys older than 1 year',
+                            'MEDIUM',
+                            year_plus=year_plus,
+                            ninetydays_plus=ninetydays_plus)]
+        elif len(ninetydays_plus):
+            return [Finding(context.state,
+                            'Access keys older than 90 days',
+                            'LOW',
+                            year_plus=year_plus,
+                            ninetydays_plus=ninetydays_plus)]
+        return []
+
+
 scans = ScanSuite('IAM Scans',
                   {'mfa': MfaScan(),
                    'rootkey': RootAccessKey(),
-                   'password_policy': PasswordPolicy()})
+                   'password_policy': PasswordPolicy(),
+                   'key_rotation': KeyRotation()})

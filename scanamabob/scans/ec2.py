@@ -115,14 +115,14 @@ class SecurityGroupScan(Scan):
                             'MEDIUM',
                             open_all=open_to_all,
                             open_unused=open_but_unused,
-                            used=used_security_groups)]
+                            used=flagged_groups)]
         elif len(open_but_unused.keys()):
             return [Finding(context.state,
                             'Unused Security Groups with ports open to all IPs',
                             'INFO',
                             open_all=open_to_all,
                             open_unused=open_but_unused,
-                            used=used_security_groups)]
+                            used=flagged_groups)]
 
         return []
 
