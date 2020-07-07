@@ -127,6 +127,39 @@ class SecurityGroupScan(Scan):
         return []
 
 
+class PublicAMIScan(Scan):
+    title = 'Scanning for public AMIs'
+    permissions = ['']
+
+    def run(self, context):
+        findings = []
+        total_images = 0
+        public_images = 0
+        images = {}
+
+        for region in context.regions:
+            region_client = client(context, region_name=region)
+            for image in region_client.describe_images(Owners=['self'])['Images']:
+                total_images += 1
+                if image['Public']:
+                    public_images += 1
+                    if region not in images:
+                        images[region] = []
+                    images[region].append(image['ImageId'])
+
+        if public_images:
+            finding = Finding(context.state,
+                              'Public Amazon Machine Images',
+                              'MEDIUM',
+                              count_total=total_images,
+                              count_public=public_images,
+                              public_images=images)
+            findings.append(finding)
+
+        return findings
+
+
 scans = ScanSuite('EC2 Scans',
                   {'encryption': EncryptionScan(),
-                   'securitygroups': SecurityGroupScan()})
+                   'securitygroups': SecurityGroupScan(),
+                   'publicamis': PublicAMIScan()})
