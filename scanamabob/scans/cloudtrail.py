@@ -5,6 +5,25 @@ from scanamabob.services.ec2 import get_regions
 from scanamabob.services.cloudtrail import client
 
 
+class CloudTrailInUse(Scan):
+    title = 'Verifying that CloudTrail is being used'
+    permissions = ['']
+
+    def run(self, context):
+        regions_without_trails = []
+        
+        for region in context.regions:
+            region_client = client(context, region_name=region)
+            if not len(region_client.describe_trails()['trailList']):
+                regions_without_trails.append(region)
+
+        if len(regions_without_trails):
+            return [Finding(context.state,
+                            'CloudTrail not in use',
+                            'MEDIUM', regions=regions_without_trails)]
+        return []
+
+
 class LogFileValidation(Scan):
     title = 'Verifying log file validation on all CloudTrails'
     permissions = ['']
@@ -32,4 +51,5 @@ class LogFileValidation(Scan):
 
 
 scans = ScanSuite('CloudTrail Scans',
-                  {'log_validation': LogFileValidation()})
+                  {'in_use': CloudTrailInUse(),
+                   'log_validation': LogFileValidation()})
