@@ -60,18 +60,20 @@ class PubliclyAccessibleScan(Scan):
         return findings
 
 
-class SSLEnabledScan(Scan):
-    title = 'Verifying Redshift clusters are using SSL'
-    permissions = ['']
+class ParameterGroupScan(Scan):
+    def __init__(self, name, value, title):
+        self.name = name
+        self.value = value
+        self.title = title
 
     def run(self, context):
         findings = []
         parameter_group_count = 0
-        no_ssl_count = 0
-        groups_without_ssl = {}
+        flagged_parameter_group_count = 0
+        flagged = {}
         instances = {}
 
-        # Search for parameter groups wit SSL disabled.
+        # Search for parameter groups with the properties we are looking to flag.
         for region in context.regions:
             redshift = client(context, region_name=region)
             for page in redshift.get_paginator('describe_cluster_parameter_groups').paginate():
@@ -79,11 +81,14 @@ class SSLEnabledScan(Scan):
                     parameter_group_count += 1
                     group_name = parameter_group['ParameterGroupName']
                     for parameter in redshift.describe_cluster_parameters(ParameterGroupName=group_name)['Parameters']:
-                        if parameter['ParameterName'] == 'require_ssl' and parameter['ParameterValue'] == 'false':
-                            no_ssl_count += 1
-                            if region not in groups_without_ssl:
-                                groups_without_ssl[region] = []
-                            groups_without_ssl[region].append({'group_name': group_name, 'in_use': False})
+                        if parameter['ParameterName'] == self.name and parameter['ParameterValue'] == self.value:
+                            flagged_parameter_group_count += 1
+                            if region not in flagged:
+                                flagged[region] = []
+                            flagged[region].append({'group_name': group_name,
+                                                    'parameter_name': self.name,
+                                                    'parameter_value': self.value,
+                                                    'in_use': False})
 
         # Next see if those parameter groups are actually used.
         severity = 'INFO'
@@ -94,21 +99,53 @@ class SSLEnabledScan(Scan):
                 for cluster in page['Clusters']:
                     for parameter_group in cluster['ClusterParameterGroups']:
                         group_name = parameter_group['ParameterGroupName']
-                        for other_group in groups_without_ssl[region]:
+                        for other_group in flagged[region]:
                             if other_group['group_name'] == group_name:
                                 other_group['in_use'] = True
                                 severity = 'MEDIUM'
 
-        if no_ssl_count:
+        # If the default parameter group isn't used, then unflag it.
+        for region in flagged:
+            default_group = None
+            for group in flagged[region]:
+                if group['group_name'] == 'default.redshift-1.0' and not group['in_use']:
+                    default_group = group
+                    break
+            if default_group:
+                flagged_parameter_group_count -= 1
+                flagged[region].remove(default_group)
+
+        if flagged_parameter_group_count:
             findings.append(Finding(context.state,
-                                    'Redshift cluster parameter groups with SSL disabled',
+                                    self.title,
                                     severity,
                                     parameter_group_count=parameter_group_count,
-                                    no_ssl_count=no_ssl_count,
-                                    instances=groups_without_ssl))
+                                    flagged_parameter_group_count=flagged_parameter_group_count,
+                                    instances=flagged))
         return findings
+
+
+class SSLEnabledScan(ParameterGroupScan):
+    title = 'Verifying Redshift clusters are using SSL'
+    permissions = ['']
+
+    def __init__(self):
+        super().__init__('require_ssl',
+                         'false',
+                         'Redshift cluster parameter groups with SSL disabled')
+
+
+class LoggingEnabledScan(ParameterGroupScan):
+    title = 'Verifying Redshift clusters are using activity logging'
+    permissions = ['']
+
+    def __init__(self):
+        super().__init__('enable_user_activity_logging',
+                         'false',
+                         'Redshift cluster parameter groups with activity logging disabled')
 
 
 scans = ScanSuite('Redshift Scans',
                   {'public': PubliclyAccessibleScan(),
+                   'logging': LoggingEnabledScan(),
                    'ssl': SSLEnabledScan()})
