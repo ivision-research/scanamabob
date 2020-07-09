@@ -9,6 +9,7 @@ import scanamabob.scans.s3 as s3
 import scanamabob.scans.cloudtrail as cloudtrail
 import scanamabob.scans.elb as elb
 import scanamabob.scans.rds as rds
+import scanamabob.scans.redshift as redshift
 from scanamabob.context import Context, add_context_to_argparse
 
 
@@ -35,7 +36,8 @@ scan_suites = {
     's3': s3.scans,
     'cloudtrail': cloudtrail.scans,
     'elb': elb.scans,
-    'rds': rds.scans
+    'rds': rds.scans,
+    'redshift': redshift.scans
 }
 
 
