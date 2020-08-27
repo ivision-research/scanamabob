@@ -30,15 +30,11 @@ class ScanSuite(object):
         self.scans = scans
 
     def run(self, context):
-        if context.output == 'stdout':
-            print('Running Scan Suite "{}"'.format(self.title))
         findings = []
         here_state = context.state
         for scantype in self.scans:
             context.state = f'{here_state}.{scantype}'
             scan = self.scans[scantype]
-            if context.output == 'stdout':
-                print(' - Running Scan "{}"'.format(scan.title))
             findings.extend(scan.run(context))
         return findings
 

@@ -13,23 +13,6 @@ import scanamabob.scans.redshift as redshift
 from scanamabob.context import Context, add_context_to_argparse
 
 
-DESCRIPTION = 'Scan AWS environment for common security misconfigurations'
-USAGE = f'''scanamabob scan [-h] [-l] [-P] [-r regions] [-p profiles] \
-[scantypes] [...]'''
-parser = ArgumentParser(description=DESCRIPTION,
-                        usage=USAGE)
-parser.add_argument('-o', '--output', choices=['stdout', 'json'],
-                    default='stdout',
-                    help="Output format for scan (default: stdout)")
-parser.add_argument('-l', '--list-scans', action='store_true',
-                    help="List the scans available to run")
-parser.add_argument('-P', '--permissions', action='store_true',
-                    help="Return IAM Policy JSON needed to complete scan")
-add_context_to_argparse(parser)
-parser.add_argument('scantypes', nargs='*',
-                    help="Specific scan suites or individual scans to run")
-
-
 scan_suites = {
     'iam': iam.scans,
     'ec2': ec2.scans,
@@ -39,6 +22,39 @@ scan_suites = {
     'rds': rds.scans,
     'redshift': redshift.scans
 }
+
+
+DESCRIPTION = 'Scan AWS environment for common security misconfigurations'
+USAGE = f'''scanamabob scan [-h] [-l] [-P] [-r regions] [-p profiles] \
+[scantypes] [...]'''
+parser = ArgumentParser(description=DESCRIPTION,
+                        usage=USAGE)
+parser.add_argument('--exclude', action='append', default=[],
+                    help="Exclude the given scan type from running")
+parser.add_argument('--include', action='append', default=[],
+                    help="Include the given scan type when running")
+parser.add_argument('-o', '--output', choices=['stdout', 'json'],
+                    default='stdout',
+                    help="Output format for scan (default: stdout)")
+parser.add_argument('-l', '--list-scans', action='store_true',
+                    help="List the scans available to run")
+parser.add_argument('-P', '--permissions', action='store_true',
+                    help="Return IAM Policy JSON needed to complete scan")
+add_context_to_argparse(parser)
+parser.add_argument('scantypes', nargs='*', default=scan_suites.keys(),
+                    help="Specific scan suites or individual scans to run")
+
+
+def valid_specifier(spec):
+    suite, scan = None, None
+    parts = spec.split('.')
+
+    if parts[0] not in scan_suites:
+        return False
+    if len(parts) > 1 and parts[1] not in scan_suites[parts[0]].scans:
+        return False
+
+    return True
 
 
 def scan_targets_valid(scanlist):
@@ -59,8 +75,24 @@ def scan_targets_valid(scanlist):
     return valid
 
 
-def run_scans(scantypes, context):
-    ''' Run the given scantypes with using the provided context '''
+def scans(scan_set, output=False):
+    ''' Yield the given scan set '''
+
+    for suite_name in scan_suites:
+        suite = scan_suites[suite_name]
+        if output:
+            print('Running Scan Suite "{}"'.format(suite.title))
+
+        for scan_name in suite.scans:
+            scan = suite.scans[scan_name]
+            if f'{suite_name}.{scan_name}' in scan_set:
+                if output:
+                    print(' - Running Scan "{}"'.format(scan.title))
+                yield scan
+
+
+def run_scans(scan_set, context):
+    ''' Run the given scan set using the provided context '''
     findings = {}
 
     for profile in context.profiles:
@@ -68,26 +100,11 @@ def run_scans(scantypes, context):
             print(f'- Scanning {profile} profile')
         context.set_profile(profile)
         findings[profile] = []
-        if scantypes:
-            # Run user specified scans
-            for scantype in scantypes:
-                context.state = scantype
-                if '.' in scantype:
-                    suite, target = scantype.split('.')
-                    scan = scan_suites[suite].scans[target]
-                    if context.output == 'stdout':
-                        print(' - Running Scan "{}"'.format(scan.title))
-                    scan_findings = scan.run(context)
-                    findings[profile].extend(scan_findings)
-                else:
-                    suite_findings = scan_suites[scantype].run(context)
-                    findings[profile].extend(suite_findings)
-        else:
-            # Run all scans
-            for suite in scan_suites:
-                context.state = suite
-                suite_findings = scan_suites[suite].run(context)
-                findings[profile].extend(suite_findings)
+
+        # Run user specified scans
+        for scan in scans(scan_set, context.output == 'stdout'):
+            scan_findings = scan.run(context)
+            findings[profile].extend(scan_findings)
 
     if context.output == 'stdout':
         print('\n{} total finding(s) from scan:'.format(len(findings)))
@@ -105,29 +122,14 @@ def run_scans(scantypes, context):
         print(json.dumps(findings_json, indent=4))
 
 
-def get_permissions(scantypes):
+def get_permissions(scan_set):
     permissions = []
 
-    if scantypes:
-        # Get permissions for user specified scans
-        for scantype in scantypes:
-            if '.' in scantype:
-                suite, target = scantype.split('.')
-                scan = scan_suites[suite].scans[target]
-                for permission in scan.permissions:
-                    if permission not in permissions:
-                        permissions.append(permission)
-            else:
-                suite = scan_suites[scantype]
-                for permission in suite.get_permissions():
-                    if permission not in permissions:
-                        permissions.append(permission)
-    else:
-        # Get permissions for all scans
-        for suite in scan_suites:
-            for permission in scan_suites[suite].get_permissions():
-                if permission not in permissions:
-                    permissions.append(permission)
+    # Get permissions for user specified scans
+    for scan in scans(scan_set):
+        for permission in scan.permissions:
+            if permission not in permissions:
+                permissions.append(permission)
 
     # Format and print IAM Policy JSON
     policy = {
@@ -152,11 +154,50 @@ def list_scans():
         print('')
 
 
+def expand_arguments(args):
+    ''' Does a pre-pass over the command line arguments to expand `+/-foo` into `--include/exclude=foo` '''
+
+    prefix_map = {
+        '-': 'exclude',
+        '+': 'include'
+    }
+
+    new_args = []
+    for arg in args:
+        if arg[0] in prefix_map and valid_specifier(arg[1:]):
+            new_args.append(f'--{prefix_map[arg[0]]}={arg[1:]}')
+        else:
+            new_args.append(arg)
+    return new_args
+
+
+def compute_scan_set(include, exclude):
+    # Expand all the suites into a set of scans excluding unwanted suites.
+    scan_specs = set()
+    for spec in (include - exclude):
+        if spec in scan_suites:
+            scan_names = scan_suites[spec].scans.keys()
+            scan_specs |= set(map(lambda s: f'{spec}.{s}', scan_names))
+        else:
+            scan_specs.add(spec)
+
+    # Remove any unwanted scans that may not have appeared before expansion.
+    scan_specs -= exclude
+
+    return scan_specs
+
+
 def command(args):
     ''' Main handler of the scan subcommand '''
+    args = expand_arguments(args)
     arguments = parser.parse_args(args)
+    include = set(arguments.include)
+    if not len(include):
+        include = set(arguments.scantypes)
+    exclude = set(arguments.exclude)
+    scan_set = compute_scan_set(include, exclude)
 
-    if not scan_targets_valid(arguments.scantypes):
+    if not scan_targets_valid(scan_set):
         print('Invalid scan types provided, scan cancelled')
         sys.exit(1)
 
@@ -171,9 +212,9 @@ def command(args):
     if arguments.list_scans:
         list_scans()
     elif arguments.permissions:
-        get_permissions(arguments.scantypes)
+        get_permissions(scan_set)
     else:
-        run_scans(arguments.scantypes, context)
+        run_scans(scan_set, context)
 
 
 COMMAND = {'description': DESCRIPTION,
