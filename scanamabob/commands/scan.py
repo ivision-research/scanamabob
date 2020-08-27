@@ -91,7 +91,6 @@ def run_scans(scantypes, context):
 
     if context.output == 'stdout':
         print('\n{} total finding(s) from scan:'.format(len(findings)))
-
         for profile in findings:
             print(f'Findings from "{profile}" profile:')
             for finding in findings[profile]:

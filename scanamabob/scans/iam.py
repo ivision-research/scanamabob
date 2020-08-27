@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from scanamabob.scans import Finding, Scan, ScanSuite
 from scanamabob.services.iam import client, resources, get_all_users, \
     get_credential_report
+import IPython
 
 
 class MfaScan(Scan):
@@ -38,6 +39,20 @@ class MfaScan(Scan):
                               users=users_without_mfa)
             return [finding]
 
+        return []
+
+class RootMfaScan(Scan):
+    title = 'AWS IAM Root user without Multi-Factor Authentication'
+    permissions = ['iam:GetAccountSummary']
+
+    def run(self, context):
+        iam = client(context)
+        summary = iam.get_account_summary()['SummaryMap']
+
+        if summary['AccountMFAEnabled'] == 0:
+            finding = Finding(context.state, self.title, 'HIGH')
+            return [finding]
+        
         return []
 
 
@@ -112,4 +127,5 @@ scans = ScanSuite('IAM Scans',
                   {'mfa': MfaScan(),
                    'rootkey': RootAccessKey(),
                    'password_policy': PasswordPolicy(),
-                   'key_rotation': KeyRotation()})
+                   'key_rotation': KeyRotation(),
+                   'root_mfa': RootMfaScan()})
