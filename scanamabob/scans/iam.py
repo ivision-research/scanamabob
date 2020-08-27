@@ -2,6 +2,8 @@ from datetime import datetime, timezone
 from scanamabob.scans import Finding, Scan, ScanSuite
 from scanamabob.services.iam import client, resources, get_all_users, \
     get_credential_report
+from datetime import datetime
+
 
 
 class MfaScan(Scan):
@@ -54,6 +56,35 @@ class RootMfaScan(Scan):
         
         return []
 
+class PasswordAgeScan(Scan):
+    title = 'Password Age more than 90 days'
+    permissions = ['iam:GenerateCredentialReport', 'iam:GetCredentialReport']
+    MAX_PASSWORD_AGE = 90
+
+    def run(self, context):
+        today = datetime.today()
+        iam = client(context)
+        users_over_max_password_age = []
+
+        creds_csv = get_credential_report(context)
+        for row in creds_csv.split('\n')[1:]:
+            col = row.split(',')
+            try:
+                # First, try with the last pass change date
+                # If password hasn't been changed and "N/A" throws a ValueError, check the creation date
+                password_last_changed = datetime.strptime(col[5], '%Y-%m-%dT%H:%M:%S+00:00')
+                if (today - password_last_changed).days > self.MAX_PASSWORD_AGE:
+                    users_over_max_password_age.append(col[0])
+            except ValueError:
+                creation_date = datetime.strptime(col[2], '%Y-%m-%dT%H:%M:%S+00:00')
+                if (today - creation_date).days > self.MAX_PASSWORD_AGE:
+                    users_over_max_password_age.append(col[0])
+                    
+        if len(users_over_max_password_age) > 0:
+            print(users_over_max_password_age)
+            return [Finding(context.state, self.title, 'MEDIUM', users_over_max_password_age=users_over_max_password_age)]
+        else:
+            return []
 
 class RootAccessKey(Scan):
     title = 'AWS Account with enabled Root Access Key'
@@ -127,4 +158,5 @@ scans = ScanSuite('IAM Scans',
                    'rootkey': RootAccessKey(),
                    'password_policy': PasswordPolicy(),
                    'key_rotation': KeyRotation(),
-                   'root_mfa': RootMfaScan()})
+                   'root_mfa': RootMfaScan(),
+                   'password_age': PasswordAgeScan()})
