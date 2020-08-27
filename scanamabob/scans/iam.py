@@ -60,7 +60,7 @@ class RootAccessKey(Scan):
 
 
 class PasswordPolicy(Scan):
-    title = 'Checking AWS account password policies'
+    title = 'AWS account password policies'
     permissions = ['iam:GetAccountPasswordPolicy']
 
     def run(self, context):
@@ -69,10 +69,36 @@ class PasswordPolicy(Scan):
             policy = resources(context).AccountPasswordPolicy()
             policy.load()
         except iam.exceptions.NoSuchEntityException:
-            return [Finding(context.state,
-                            'No AWS account-level password policy', 'HIGH')]
-        # TODO define and add findings for weak password policies
-        return []
+            return [Finding(context.state, 'No AWS account-level password policy', 'HIGH')]
+        res = list()
+        if policy.minimum_password_length < 16:
+            sev = 'LOW'
+            if policy.minimum_password_length < 10:
+                sev = 'MEDIUM'
+            if policy.minimum_password_length <= 8:
+                sev = 'HIGH'
+            if policy.minimum_password_length <= 6:
+                sev = 'CRITICAL'
+            res.append(Finding(context.state, 'Minimum password length too low', sev, password_length=policy.minimum_password_length))
+        complexity = policy.require_lowercase_characters + policy.require_numbers + policy.require_symbols + policy.require_uppercase_characters
+        if complexity < 4:
+            sev = 'LOW'
+            if complexity < 2:
+                sev = 'MEDIUM'
+            res.append(Finding(context.state, 'Few complexity requirements', sev,
+                require_lowercase_characters=policy.require_lowercase_characters,
+                require_numbers=policy.require_numbers,
+                require_symbols=policy.require_symbols,
+                require_uppercase_characters=policy.require_uppercase_characters))
+        if not policy.password_reuse_prevention:
+            res.append(Finding(context.state, 'No password reuse prevention', 'LOW'))
+
+        # Unused policy attributes:
+        # allow_users_to_change_password
+        # expire_passwords
+        # hard_expiry
+        # max_password_age
+        return res
 
 
 class KeyRotation(Scan):
