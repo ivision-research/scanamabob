@@ -81,7 +81,6 @@ class PasswordAgeScan(Scan):
                     users_over_max_password_age.append(col[0])
                     
         if len(users_over_max_password_age) > 0:
-            print(users_over_max_password_age)
             return [Finding(context.state, self.title, 'MEDIUM', users_over_max_password_age=users_over_max_password_age)]
         else:
             return []

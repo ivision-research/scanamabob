@@ -11,7 +11,6 @@ import scanamabob.scans.elb as elb
 import scanamabob.scans.rds as rds
 import scanamabob.scans.redshift as redshift
 from scanamabob.context import Context, add_context_to_argparse
-import IPython
 
 DESCRIPTION = 'Scan AWS environment for common security misconfigurations'
 USAGE = f'''scanamabob scan [-h] [-l] [-P] [-r regions] [-p profiles] \
