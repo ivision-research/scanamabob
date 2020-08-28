@@ -11,4 +11,7 @@ infradown:
 test:
 	py.test tests
 
+format:
+	black scanamabob scripts tests
+
 .PHONY: init infraup infradown

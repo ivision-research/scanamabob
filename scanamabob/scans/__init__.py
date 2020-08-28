@@ -4,17 +4,18 @@ import colorama
 colorama.init()
 reset_style = colorama.Style.RESET_ALL
 severity_colors = {
-    'CRITICAL': colorama.Fore.BLACK + colorama.Back.RED,
-    'HIGH': colorama.Fore.RED,
-    'MEDIUM': colorama.Fore.YELLOW,
-    'LOW': colorama.Fore.MAGENTA,
-    'INFO': colorama.Fore.CYAN
+    "CRITICAL": colorama.Fore.BLACK + colorama.Back.RED,
+    "HIGH": colorama.Fore.RED,
+    "MEDIUM": colorama.Fore.YELLOW,
+    "LOW": colorama.Fore.MAGENTA,
+    "INFO": colorama.Fore.CYAN,
 }
 
 
 class Scan(object):
-    ''' Base object that each scan will be a subclass of '''
-    title = 'Unnamed Scan'
+    """ Base object that each scan will be a subclass of """
+
+    title = "Unnamed Scan"
     permissions = []
     finding_template = None
 
@@ -24,20 +25,21 @@ class Scan(object):
 
 
 class ScanSuite(object):
-    ''' Facilitates running a set of scans together '''
+    """ Facilitates running a set of scans together """
+
     def __init__(self, title, scans):
         self.title = title
         self.scans = scans
 
     def run(self, context):
-        if context.output == 'stdout':
+        if context.output == "stdout":
             print('Running Scan Suite "{}"'.format(self.title))
         findings = []
         here_state = context.state
         for scantype in self.scans:
-            context.state = f'{here_state}.{scantype}'
+            context.state = f"{here_state}.{scantype}"
             scan = self.scans[scantype]
-            if context.output == 'stdout':
+            if context.output == "stdout":
                 print(' - Running Scan "{}"'.format(scan.title))
             findings.extend(scan.run(context))
         return findings
@@ -50,16 +52,17 @@ class ScanSuite(object):
 
 
 class Finding(object):
-    ''' Represents a finding '''
+    """ Represents a finding """
+
     def __init__(self, tag, title, severity, **data):
-        severities = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO']
+        severities = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]
         # Scan tag helps to identify which scan found the finding
         self.tag = tag
         # Title of finding
         self.title = title
         # Severity of the finding
         if severity not in severities:
-            raise Exception(f'Severity must be within set {severities}')
+            raise Exception(f"Severity must be within set {severities}")
         self.severity = severity
         # Data holds additional data regarding a finding
         self.data = data
@@ -70,6 +73,8 @@ class Finding(object):
     def as_stdout(self):
         data = json.dumps(self.data, indent=4)
         color = colorama.Fore.RED
-        return (f'{color} * {self.severity} * ' +
-                f'{self.title} ({self.tag}){reset_style}\n' +
-                f'{data}')
+        return (
+            f"{color} * {self.severity} * "
+            + f"{self.title} ({self.tag}){reset_style}\n"
+            + f"{data}"
+        )
