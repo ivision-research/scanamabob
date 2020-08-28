@@ -12,7 +12,6 @@ import scanamabob.scans.rds as rds
 import scanamabob.scans.redshift as redshift
 from scanamabob.context import Context, add_context_to_argparse
 
-
 DESCRIPTION = 'Scan AWS environment for common security misconfigurations'
 USAGE = f'''scanamabob scan [-h] [-l] [-P] [-r regions] [-p profiles] \
 [scantypes] [...]'''
@@ -90,8 +89,10 @@ def run_scans(scantypes, context):
                 findings[profile].extend(suite_findings)
 
     if context.output == 'stdout':
-        print('\n{} total finding(s) from scan:'.format(len(findings)))
-
+        #IPython.embed()
+        # Iterate through every region and sum up the findings
+        total_findings = sum(len(lst) for lst in findings.values())
+        print('\n{} total finding(s) from scan:'.format(total_findings))
         for profile in findings:
             print(f'Findings from "{profile}" profile:')
             for finding in findings[profile]:
