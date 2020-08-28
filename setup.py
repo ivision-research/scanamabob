@@ -12,7 +12,7 @@ setuptools.setup(
     author="Carve Systems, LLC.",
     author_email="kenneth.wilke@carvesystems.com",
     description="A security toolkit for AWS based environments",
-    long_description='# Scanamabob!',
+    long_description="# Scanamabob!",
     long_description_content_type="text/markdown",
     url="https://github.com/CarveSystems/scanamabob",
     packages=setuptools.find_packages(),
@@ -22,10 +22,9 @@ setuptools.setup(
         "Operating System :: OS Independent",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Topic :: Security",
-        "Topic :: Utilities"
+        "Topic :: Utilities",
     ],
-    scripts=['scripts/scanamabob'],
+    scripts=["scripts/scanamabob"],
     install_requires=requirements,
-    python_requires='>=3.6',
+    python_requires=">=3.6",
 )
-
