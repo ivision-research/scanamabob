@@ -1,4 +1,4 @@
-from scanamabob.services.rds import client
+from scanamabob.services.rds import client, describe_db_instances, describe_db_cluster
 from scanamabob.scans import Finding, Scan, ScanSuite
 
 
@@ -19,14 +19,21 @@ class PropertyScan(Scan):
 
         for region in context.regions:
             rds = client(context, region_name=region)
-            for page in rds.get_paginator('describe_db_instances').paginate():
-                for db in page['DBInstances']:
-                    rds_count += 1
-                    if db[self.name] == self.value:
-                        flagged_rds_count += 1
-                        if region not in flagged:
-                            flagged[region] = []
-                        flagged[region].append(db['DBInstanceIdentifier'])
+            for db in describe_db_instances(context, region):
+                rds_count += 1
+                target_value = db[self.name]
+
+                # Cluster properties take precedence.
+                if 'DBClusterIdentifier' in db:
+                    cluster = describe_db_cluster(context, region, db['DBClusterIdentifier'])
+                    if self.name in cluster:
+                        target_value = cluster[self.name]
+
+                if db[self.name] == target_value:
+                    flagged_rds_count += 1
+                    if region not in flagged:
+                        flagged[region] = []
+                    flagged[region].append(db['DBInstanceIdentifier'])
 
         if flagged_rds_count:
             findings.append(Finding(context.state,
