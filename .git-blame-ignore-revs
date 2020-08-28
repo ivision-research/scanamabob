@@ -1,2 +1,4 @@
 # Migrate code style to Black
 7fa3960c7cc25ac523a66e321250dd5aa280c8e3
+# Sort imports with isort
+40f01d0aefff288ff749d469fa900c819aeb49a0
