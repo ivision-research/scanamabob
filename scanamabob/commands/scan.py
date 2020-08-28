@@ -5,6 +5,7 @@ import json
 from argparse import ArgumentParser
 import scanamabob.scans.iam as iam
 import scanamabob.scans.ec2 as ec2
+import scanamabob.scans.eks as eks
 import scanamabob.scans.s3 as s3
 import scanamabob.scans.cloudtrail as cloudtrail
 import scanamabob.scans.elb as elb
@@ -32,6 +33,7 @@ parser.add_argument('scantypes', nargs='*',
 scan_suites = {
     'iam': iam.scans,
     'ec2': ec2.scans,
+    'eks': eks.scans,
     's3': s3.scans,
     'cloudtrail': cloudtrail.scans,
     'elb': elb.scans,
