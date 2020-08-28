@@ -48,6 +48,14 @@ class EncryptionScan(PropertyScan):
                          'RDS instances without encryption')
 
 
+class BackupsScan(PropertyScan):
+    title = 'Verifying RDS instances have backups enabled'
+    permissions = ['']
+
+    def __init__(self):
+        super().__init__('BackupRetentionPeriod', 0, 'RDS instances without backups')
+
+
 class MultiAZScan(PropertyScan):
     title = 'Verifying RDS instances are in multiple availability zones'
     permissions = ['']
@@ -60,4 +68,5 @@ class MultiAZScan(PropertyScan):
 
 scans = ScanSuite('RDS Scans',
                   {'encryption': EncryptionScan(),
+                   'backups': BackupsScan(),
                    'multiaz': MultiAZScan()})
