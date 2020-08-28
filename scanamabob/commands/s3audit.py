@@ -1,8 +1,9 @@
-import sys
 import json
+import sys
 from argparse import ArgumentParser
-from scanamabob.context import Context, add_context_to_argparse
+
 import scanamabob.services.s3 as s3
+from scanamabob.context import Context, add_context_to_argparse
 from scanamabob.services.sts import get_accountid
 
 DESCRIPTION = "Generate report on S3 access controls"

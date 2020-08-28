@@ -1,6 +1,6 @@
+from scanamabob.scans import Finding, Scan, ScanSuite
 from scanamabob.services.ec2 import get_region_secgroups
 from scanamabob.services.redshift import client
-from scanamabob.scans import Finding, Scan, ScanSuite
 
 
 class PubliclyAccessibleScan(Scan):

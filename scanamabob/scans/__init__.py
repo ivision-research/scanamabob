@@ -1,4 +1,5 @@
 import json
+
 import colorama
 
 colorama.init()

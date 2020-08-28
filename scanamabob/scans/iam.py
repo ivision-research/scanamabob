@@ -1,12 +1,12 @@
 from datetime import datetime, timezone
+
 from scanamabob.scans import Finding, Scan, ScanSuite
 from scanamabob.services.iam import (
     client,
-    resources,
     get_all_users,
     get_credential_report,
+    resources,
 )
-from datetime import datetime
 
 
 class MfaScan(Scan):

@@ -1,11 +1,12 @@
-import os
 import json
+import os
+
 from scanamabob.scans import Finding, Scan, ScanSuite
 from scanamabob.services.ec2 import (
     client,
-    get_regions,
     get_region_instances,
     get_region_secgroups,
+    get_regions,
 )
 
 

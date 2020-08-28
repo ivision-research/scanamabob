@@ -1,6 +1,8 @@
+import json
+
 import boto3
 import botocore
-import json
+
 from scanamabob.services.sts import get_accountid
 
 PUBLIC_URI = "http://acs.amazonaws.com/groups/global/AllUsers"

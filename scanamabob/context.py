@@ -2,10 +2,12 @@ import json
 import os
 import sys
 import urllib.request
-from ipaddress import ip_network
 from configparser import ConfigParser
-from scanamabob.services.ec2 import get_regions
+from ipaddress import ip_network
+
 from boto3.session import Session
+
+from scanamabob.services.ec2 import get_regions
 
 
 def add_context_to_argparse(parser):

@@ -1,16 +1,17 @@
+import json
+import os
 import sys
 import time
-import os
-import json
 from argparse import ArgumentParser
-import scanamabob.scans.iam as iam
+
+import scanamabob.scans.cloudtrail as cloudtrail
 import scanamabob.scans.ec2 as ec2
 import scanamabob.scans.eks as eks
-import scanamabob.scans.s3 as s3
-import scanamabob.scans.cloudtrail as cloudtrail
 import scanamabob.scans.elb as elb
+import scanamabob.scans.iam as iam
 import scanamabob.scans.rds as rds
 import scanamabob.scans.redshift as redshift
+import scanamabob.scans.s3 as s3
 from scanamabob.context import Context, add_context_to_argparse
 
 DESCRIPTION = "Scan AWS environment for common security misconfigurations"

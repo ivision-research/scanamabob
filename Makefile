@@ -12,6 +12,7 @@ test:
 	py.test tests
 
 format:
-	black scanamabob scripts tests
+	isort --multi-line=3 --trailing-comma --force-grid-wrap=0 --use-parentheses --line-width=88 -y
+	black .
 
 .PHONY: init infraup infradown

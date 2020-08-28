@@ -1,8 +1,10 @@
-import boto3
 import sys
+
+import boto3
+
 from scanamabob.scans import Finding, Scan, ScanSuite
-from scanamabob.services.ec2 import get_regions
 from scanamabob.services.cloudtrail import client
+from scanamabob.services.ec2 import get_regions
 
 
 class CloudTrailInUse(Scan):
