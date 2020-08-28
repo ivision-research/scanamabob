@@ -1,5 +1,5 @@
-from scanamabob.services.rds import client, describe_db_instances, describe_db_cluster
 from scanamabob.scans import Finding, Scan, ScanSuite
+from scanamabob.services.rds import client, describe_db_cluster, describe_db_instances
 
 
 class PropertyScan(Scan):

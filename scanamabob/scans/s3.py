@@ -1,17 +1,18 @@
 import boto3
 from botocore.exceptions import ClientError
+
 from scanamabob.scans import Finding, Scan, ScanSuite
-from scanamabob.services.sts import get_accountid
 from scanamabob.services.s3 import (
-    client,
-    resources,
-    control,
-    get_all_buckets,
-    get_account_public_access,
-    PUBLIC_URI,
-    get_bucket_policy,
     ENC_NOT_FOUND,
+    PUBLIC_URI,
+    client,
+    control,
+    get_account_public_access,
+    get_all_buckets,
+    get_bucket_policy,
+    resources,
 )
+from scanamabob.services.sts import get_accountid
 
 
 class PermissionScan(Scan):

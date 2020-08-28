@@ -1,5 +1,5 @@
-from scanamabob.services.eks import client, list_clusters
 from scanamabob.scans import Finding, Scan, ScanSuite
+from scanamabob.services.eks import client, list_clusters
 
 
 class PubliclyAccessibleAPIServerScan(Scan):

@@ -1,5 +1,6 @@
 import boto3
 from botocore.exceptions import ClientError
+
 from scanamabob.scans import Finding, Scan, ScanSuite
 
 

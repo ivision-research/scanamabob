@@ -1,5 +1,6 @@
-import boto3
 import time
+
+import boto3
 
 __cache_all_users = {}
 __cache_credential_report = {}

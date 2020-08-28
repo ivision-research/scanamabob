@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
+
 from scanamabob.context import Context, add_context_to_argparse
 from scanamabob.services.sts import get_accountid
-
 
 DESCRIPTION = "Scan AWS environment for common security misconfigurations"
 USAGE = f"""scanamabob summary [-h] [-r regions] [-p profiles]"""

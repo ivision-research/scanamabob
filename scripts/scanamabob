@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import sys
+
 from scanamabob.commands import commands
 
 VERSION = '0.0.2'
@@ -18,4 +19,3 @@ if len(sys.argv) < 2 or sys.argv[1] not in commands:
     exit(1)
 
 commands[sys.argv[1]]['function'](sys.argv[2:])
-

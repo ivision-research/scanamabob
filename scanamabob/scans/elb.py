@@ -1,5 +1,5 @@
-from scanamabob.services.elb import client, v2_client
 from scanamabob.scans import Finding, Scan, ScanSuite
+from scanamabob.services.elb import client, v2_client
 
 
 class AccessLogScan(Scan):

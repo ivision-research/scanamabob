@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from .context import scanamabob
-from scanamabob.scans.s3 import PermissionScan
 from scanamabob.context import Context
+from scanamabob.scans.s3 import PermissionScan
+
+from .context import scanamabob
 
 
 def test_world_writeable_s3_bucket():
