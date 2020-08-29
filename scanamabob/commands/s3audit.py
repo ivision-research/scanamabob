@@ -121,6 +121,3 @@ def command(arguments):
     for profile in context.profiles:
         context.current_profile = profile
         audit_account(context)
-
-
-COMMAND = {'description': DESCRIPTION, 'add_parser': add_parser, 'function': command}

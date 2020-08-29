@@ -1,5 +1,5 @@
-from .s3audit import COMMAND as s3audit
-from .scan import COMMAND as scan
-from .summary import COMMAND as summary
+from .s3audit import add_parser as s3audit
+from .scan import add_parser as scan
+from .summary import add_parser as summary
 
-commands = {"s3audit": s3audit, "scan": scan, "summary": summary}
+add_parser_funcs = {"s3audit": s3audit, "scan": scan, "summary": summary}

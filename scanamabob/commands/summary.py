@@ -38,6 +38,3 @@ def command(arguments):
         print(f"# {profile} ({accountid})")
         iam_summary(context)
         ec2_summary(context)
-
-
-COMMAND = {'description': DESCRIPTION, 'add_parser': add_parser, 'function': command}

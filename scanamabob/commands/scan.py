@@ -16,8 +16,6 @@ from scanamabob.context import Context, add_context_to_argparse
 
 
 DESCRIPTION = 'Scan AWS environment for common security misconfigurations'
-USAGE = f'''scanamabob scan [-h] [-l] [-P] [-r regions] [-p profiles] \
-[scantypes] [...]'''
 
 
 def add_parser(main_parser):
@@ -192,6 +190,3 @@ def command(arguments):
         get_permissions(arguments.scantypes)
     else:
         run_scans(arguments.scantypes, context)
-
-
-COMMAND = {'description': DESCRIPTION, 'add_parser': add_parser, 'function': command}
