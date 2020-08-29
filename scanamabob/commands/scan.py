@@ -29,13 +29,14 @@ def add_parser(main_parser):
         default='stdout',
         help="Output format for scan (default: stdout)",
     )
-    parser.add_argument(
+    list_group = parser.add_mutually_exclusive_group()
+    list_group.add_argument(
         '-l',
         '--list-scans',
         action='store_true',
         help="List the scans available to run",
     )
-    parser.add_argument(
+    list_group.add_argument(
         '-P',
         '--permissions',
         action='store_true',
