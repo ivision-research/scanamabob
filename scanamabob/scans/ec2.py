@@ -56,6 +56,8 @@ class SecurityGroupScan(Scan):
         open_to_all = {}
         open_but_unused = {}
         used_open_gids = []
+
+        # Collect list of security groups attached to a network interface
         for region in context.regions:
             for instance in get_region_instances(context, region):
                 for interface in instance["NetworkInterfaces"]:
@@ -77,16 +79,23 @@ class SecurityGroupScan(Scan):
                         else:
                             used_security_groups[gid].append(info)
 
+        # Collect list of problematic security groups
         for region in context.regions:
             for group in get_region_secgroups(context, region):
+                # Ingress rules
                 for permission in group["IpPermissions"]:
                     if permission["IpRanges"] == []:
                         # Empty Security Group
                         continue
-                    if {"CidrIp": "0.0.0.0/0"} in permission["IpRanges"]:
-                        proto = permission["IpProtocol"]
-                        toport = permission["ToPort"]
-                        fromport = permission["FromPort"]
+                    # Test for ports allowed from any IP
+                    if any(
+                        iprange["CidrIpv6"] == "::/0"
+                        or iprange["CidrIp"] == "0.0.0.0/0"
+                        for iprange in permission["IpRanges"]
+                    ):
+                        proto = permission.get("IpProtocol", "-1")
+                        toport = permission.get("ToPort", -1)
+                        fromport = permission.get("FromPort", -1)
                         if toport == fromport:
                             port = toport
                         else:
@@ -111,7 +120,8 @@ class SecurityGroupScan(Scan):
                                 open_but_unused[region][proto][port] = [gid]
                             else:
                                 open_but_unused[region][proto][port].append(gid)
-        # Filter out unused for findings
+
+        # Categorize unused security groups for findings
         flagged_groups = {}
         for group in used_security_groups:
             if group in used_open_gids:
@@ -138,7 +148,6 @@ class SecurityGroupScan(Scan):
                     used=flagged_groups,
                 )
             ]
-
         return []
 
 
