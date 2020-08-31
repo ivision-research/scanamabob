@@ -1,6 +1,4 @@
 import time
-import IPython
-
 import boto3
 
 __cache_all_users = {}
