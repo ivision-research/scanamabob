@@ -28,5 +28,9 @@ s3audit  -  Generate report on S3 access controls''',
 for add_parser in add_parser_funcs.values():
     add_parser(subparsers)
 
+if len(sys.argv) == 1:
+    main_parser.print_help(sys.stderr)
+    exit(1)
+
 args = main_parser.parse_args()
 args.func(args)
