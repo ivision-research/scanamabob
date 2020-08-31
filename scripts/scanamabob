@@ -12,10 +12,17 @@ This tool is in a very early phase of development and is undergoing active devel
 """
 
 main_parser = argparse.ArgumentParser(
-    prog='scanamabob', description=DESCRIPTION, formatter_class=argparse.RawDescriptionHelpFormatter, usage=USAGE
+    prog='scanamabob',
+    description=DESCRIPTION,
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+    usage=USAGE,
 )
 subparsers = main_parser.add_subparsers(
-    prog='scanamabob', dest='command', required=True
+    prog='scanamabob',
+    dest='command',
+    description='''scan     -  Scan AWS environment for common security misconfigurations
+s3audit  -  Generate report on S3 access controls''',
+    required=True,
 )
 
 for add_parser in add_parser_funcs.values():
