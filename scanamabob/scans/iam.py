@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
-<<<<<<< HEAD
-
 from scanamabob.scans import Finding, Scan, ScanSuite
+from scanamabob.scans import Finding, Scan, ScanSuite
+from scanamabob.services.iam import client, resources, get_all_users, \
+    get_credential_report, get_attached_iam_policy_documents
 from scanamabob.services.iam import (
     client,
     get_all_users,
@@ -10,13 +11,7 @@ from scanamabob.services.iam import (
 )
 
 
-=======
-from scanamabob.scans import Finding, Scan, ScanSuite
-from scanamabob.services.iam import client, resources, get_all_users, \
-    get_credential_report, get_attached_iam_policy_documents
-from datetime import datetime
 
->>>>>>> NotAction check added
 class MfaScan(Scan):
     title = "AWS IAM Users without Multi-Factor Authentication"
     permissions = ["iam:ListUsers", "iam:ListMFADevices", "iam:GetLoginProfile"]
@@ -268,12 +263,12 @@ class KeyRotation(Scan):
             ]
         return []
 
-    scans = ScanSuite('IAM Scans',
-                  {'mfa': MfaScan(),
-                   'rootkey': RootAccessKey(),
-                   'password_policy': PasswordPolicy(),
-                   'key_rotation': KeyRotation(),
-                   'root_mfa': RootMfaScan(),
-                   'password_age': PasswordAgeScan(),
-                   'not_action': NotActionScan()})
+scans = ScanSuite('IAM Scans',
+              {'mfa': MfaScan(),
+               'rootkey': RootAccessKey(),
+               'password_policy': PasswordPolicy(),
+               'key_rotation': KeyRotation(),
+               'root_mfa': RootMfaScan(),
+               'password_age': PasswordAgeScan(),
+               'not_action': NotActionScan()})
 
