@@ -9,8 +9,13 @@ from scanamabob.services.sts import get_accountid
 DESCRIPTION = "Generate report on S3 access controls"
 USAGE = f"""{sys.argv[0]} s3audit [-h]"""
 
-parser = ArgumentParser(description=DESCRIPTION, usage=USAGE)
-add_context_to_argparse(parser)
+
+def add_parser(main_parser):
+    parser = main_parser.add_parser(
+        name='s3audit', description=DESCRIPTION, usage=USAGE
+    )
+    add_context_to_argparse(parser)
+    parser.set_defaults(func=command)
 
 
 def audit_account(context):
@@ -109,14 +114,10 @@ def audit_bucket(context, bucket):
     print(f"\n{count} total object(s) in bucket\n")
 
 
-def command(args):
-    """ Main handler of the s3audit subcommand """
-    arguments = parser.parse_args(args)
+def command(arguments):
+    ''' Main handler of the s3audit subcommand '''
     context = Context(arguments.profiles, arguments.regions)
     buckets = {}
     for profile in context.profiles:
         context.current_profile = profile
         audit_account(context)
-
-
-COMMAND = {"description": DESCRIPTION, "function": command}

@@ -1,21 +1,36 @@
 #!/usr/bin/env python3
 import sys
 
-from scanamabob.commands import commands
+from scanamabob.commands import add_parser_funcs
+import argparse
 
 VERSION = '0.0.2'
-USAGE = f"""Usage: scanamabob <command> [-h] [command-specific-arguments]
-
-Scanamabob v{VERSION} - AWS Security Tooling
+USAGE = "Usage: scanamabob <command> [command-specific-arguments]"
+DESCRIPTION = f"""Scanamabob v{VERSION} - AWS Security Tooling
 
 This tool is in a very early phase of development and is undergoing active development. Many desired features are currently missing and incomplete. Early release of this version through PyPI is intended to generate useful feedback from potential users.
-
-  scan     -  Scan AWS environment for common security misconfigurations
-  s3audit  -  Generate report on S3 access controls
 """
 
-if len(sys.argv) < 2 or sys.argv[1] not in commands:
-    print(USAGE)
+main_parser = argparse.ArgumentParser(
+    prog='scanamabob',
+    description=DESCRIPTION,
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+    usage=USAGE,
+)
+subparsers = main_parser.add_subparsers(
+    prog='scanamabob',
+    dest='command',
+    description='''scan     -  Scan AWS environment for common security misconfigurations
+s3audit  -  Generate report on S3 access controls''',
+    required=True,
+)
+
+for add_parser in add_parser_funcs.values():
+    add_parser(subparsers)
+
+if len(sys.argv) == 1:
+    main_parser.print_help(sys.stderr)
     exit(1)
 
-commands[sys.argv[1]]['function'](sys.argv[2:])
+args = main_parser.parse_args()
+args.func(args)

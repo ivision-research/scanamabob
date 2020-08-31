@@ -3,10 +3,17 @@ from argparse import ArgumentParser
 from scanamabob.context import Context, add_context_to_argparse
 from scanamabob.services.sts import get_accountid
 
-DESCRIPTION = "Scan AWS environment for common security misconfigurations"
-USAGE = f"""scanamabob summary [-h] [-r regions] [-p profiles]"""
-parser = ArgumentParser(description=DESCRIPTION, usage=USAGE)
-add_context_to_argparse(parser)
+
+DESCRIPTION = 'Scan AWS environment for common security misconfigurations'
+USAGE = f'''scanamabob summary [-h] [-r regions] [-p profiles]'''
+
+
+def add_parser(main_parser):
+    parser = main_parser.add_parser(
+        name='summary', description=DESCRIPTION, usage=USAGE
+    )
+    add_context_to_argparse(parser)
+    parser.set_defaults(func=command)
 
 
 def iam_summary(context):
@@ -17,9 +24,8 @@ def ec2_summary(context):
     print("## EC2")
 
 
-def command(args):
-    """ Main handler of the summary subcommand """
-    arguments = parser.parse_args(args)
+def command(arguments):
+    ''' Main handler of the summary subcommand '''
     context = Context(arguments.profiles, arguments.regions)
 
     if not context.regions_valid():
@@ -32,6 +38,3 @@ def command(args):
         print(f"# {profile} ({accountid})")
         iam_summary(context)
         ec2_summary(context)
-
-
-COMMAND = {"description": DESCRIPTION, "function": command}
