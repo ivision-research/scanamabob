@@ -81,7 +81,6 @@ class SecurityGroupScan(Scan):
                             used_security_groups[gid] = [info]
                         else:
                             used_security_groups[gid].append(info)
-
         # Collect list of problematic security groups
         for region in context.regions:
             for group in get_region_secgroups(context, region):
@@ -92,8 +91,8 @@ class SecurityGroupScan(Scan):
                         continue
                     # Test for ports allowed from any IP
                     if any(
-                        iprange["CidrIpv6"] == "::/0"
-                        or iprange["CidrIp"] == "0.0.0.0/0"
+                        iprange.get("CidrIpv6", "") == "::/0"
+                        or iprange.get("CidrIp", "") == "0.0.0.0/0"
                         for iprange in permission["IpRanges"]
                     ):
                         proto = permission.get("IpProtocol", "-1")
@@ -123,7 +122,6 @@ class SecurityGroupScan(Scan):
                                 open_but_unused[region][proto][port] = [gid]
                             else:
                                 open_but_unused[region][proto][port].append(gid)
-
         # Categorize unused security groups for findings
         flagged_groups = {}
         for group in used_security_groups:
@@ -200,19 +198,20 @@ class ExposedEC2Scan(Scan):
             try:
                 region_secgroup_ipperms_map = {}
                 for g in get_region_secgroups(context, region):
+                    # Create a lookup map between groups and corresponding rules
                     region_secgroup_ipperms_map[g['GroupId']] = g['IpPermissions']
 
                     for instance in get_region_running_instances(context, region):
+                        # We only care about EC2 instances with public IPs
                         if instance.public_ip_address is not None:
-                        # Only care about EC2 instances with public IPs, hence the condition above
-                        # Fetch all security groups for an instance
-                            if instance.security_groups is not None:                            
+                            if instance.security_groups is not None:
+                                # Look up instance's rules by finding the security group in the lookup map
                                 for instance_group in instance.security_groups:
                                     if instance_group['GroupId'] in region_secgroup_ipperms_map.keys():                                    
                                         for rule in region_secgroup_ipperms_map[instance_group['GroupId']]:                                    
                                             for iprange in rule['IpRanges']:
-                                                if iprange['CidrIp'] == '0.0.0.0/0' and rule['IpProtocol'] in ('tcp', 'udp'):
-                                                    entry = (region, instance_group['GroupId'], instance.instance_id, instance.public_ip_address, rule['ToPort'])
+                                                if (iprange.get("CidrIpv6", "") == "::/0" or iprange.get("CidrIp", "") == '0.0.0.0/0') and rule['IpProtocol'] in ('tcp', 'udp'):
+                                                    entry = {"Region": region, "GroupId": instance_group['GroupId'], "InstanceId": instance.instance_id, "PublicIpAddress": instance.public_ip_address, "ToPort": rule['ToPort']}
                                                     if entry not in results:
                                                         results.append(entry)
             except Exception as e:
