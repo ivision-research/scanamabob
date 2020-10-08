@@ -1,7 +1,7 @@
 __cache_regions = {}
 __cache_ec2_instances = {}
 __cache_security_groups = {}
-
+__cache_running_instances = {}
 
 def client(context, **kwargs):
     """ Return an EC2 client handle for the given context """
@@ -64,3 +64,21 @@ def get_region_secgroups(context, region):
     else:
         __cache_security_groups[context.current_profile][region] = groups
     return groups
+
+def get_region_running_instances(context, region):
+    if context.current_profile in __cache_running_instances:
+        if region in __cache_running_instances[context.current_profile]:
+            return __cache_running_instances[context.current_profile][region]
+
+    ec2 = resources(context, region_name=region)
+
+    instances = ec2.instances.filter(Filters=[{
+            'Name': 'instance-state-name',
+            'Values': ['running']}])
+
+    if context.current_profile not in __cache_running_instances:
+        __cache_running_instances[context.current_profile] = {region: instances}
+    else:
+        __cache_running_instances[context.current_profile][region] = instances
+
+    return instances

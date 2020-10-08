@@ -7,7 +7,10 @@ from scanamabob.services.ec2 import (
     get_region_instances,
     get_region_secgroups,
     get_regions,
+    get_region_running_instances
 )
+
+from IPython import embed
 
 
 class EncryptionScan(Scan):
@@ -184,6 +187,48 @@ class PublicAMIScan(Scan):
 
         return findings
 
+class ExposedEC2Scan(Scan):
+    title = "Scanning exposed EC2 instances"
+    permissions = [""]
+
+    def run(self, context):
+
+        results = []
+
+        for region in context.regions:
+            print(f"Parsing region {region}")
+            try:
+                region_secgroup_ipperms_map = {}
+                for g in get_region_secgroups(context, region):
+                    region_secgroup_ipperms_map[g['GroupId']] = g['IpPermissions']
+
+                    for instance in get_region_running_instances(context, region):
+                        if instance.public_ip_address is not None:
+                        # Only care about EC2 instances with public IPs, hence the condition above
+                        # Fetch all security groups for an instance
+                            if instance.security_groups is not None:                            
+                                for instance_group in instance.security_groups:
+                                    if instance_group['GroupId'] in region_secgroup_ipperms_map.keys():                                    
+                                        for rule in region_secgroup_ipperms_map[instance_group['GroupId']]:                                    
+                                            for iprange in rule['IpRanges']:
+                                                if iprange['CidrIp'] == '0.0.0.0/0' and rule['IpProtocol'] in ('tcp', 'udp'):
+                                                    entry = (region, instance_group['GroupId'], instance.instance_id, instance.public_ip_address, rule['ToPort'])
+                                                    if entry not in results:
+                                                        results.append(entry)
+            except Exception as e:
+                print(e)
+
+
+        if len(results) > 0:
+            return [
+                Finding(
+                    context.state,
+                    "Instances with open security groups",
+                    "INFO",
+                    results=results,
+                )
+            ]
+        return []
 
 scans = ScanSuite(
     "EC2 Scans",
@@ -191,5 +236,6 @@ scans = ScanSuite(
         "encryption": EncryptionScan(),
         "securitygroups": SecurityGroupScan(),
         "publicamis": PublicAMIScan(),
+        "exposedec2": ExposedEC2Scan()
     },
 )
