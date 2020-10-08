@@ -60,68 +60,76 @@ class SecurityGroupScan(Scan):
         open_but_unused = {}
         used_open_gids = []
 
+
         # Collect list of security groups attached to a network interface
         for region in context.regions:
-            for instance in get_region_instances(context, region):
-                for interface in instance["NetworkInterfaces"]:
-                    for group in interface["Groups"]:
-                        gid = group["GroupId"]
-                        info = {
-                            "instance": instance["InstanceId"],
-                            "interface": interface["NetworkInterfaceId"],
-                            "name": group["GroupName"],
-                            "ip": {
-                                "private": interface["PrivateIpAddress"],
-                                "public": None,
-                            },
-                        }
-                        if "Association" in interface:
-                            info["ip"]["public"] = interface["Association"]["PublicIp"]
-                        if gid not in used_security_groups:
-                            used_security_groups[gid] = [info]
-                        else:
-                            used_security_groups[gid].append(info)
+            try:
+                for instance in get_region_instances(context, region):
+                    for interface in instance["NetworkInterfaces"]:
+                        for group in interface["Groups"]:
+                            gid = group["GroupId"]
+                            info = {
+                                "instance": instance["InstanceId"],
+                                "interface": interface["NetworkInterfaceId"],
+                                "name": group["GroupName"],
+                                "ip": {
+                                    "private": interface["PrivateIpAddress"],
+                                    "public": None,
+                                },
+                            }
+                            if "Association" in interface:
+                                info["ip"]["public"] = interface["Association"]["PublicIp"]
+                            if gid not in used_security_groups:
+                                used_security_groups[gid] = [info]
+                            else:
+                                used_security_groups[gid].append(info)
+            except Exception as e:
+                print(e)
         # Collect list of problematic security groups
         for region in context.regions:
-            for group in get_region_secgroups(context, region):
-                # Ingress rules
-                for permission in group["IpPermissions"]:
-                    if permission["IpRanges"] == []:
-                        # Empty Security Group
-                        continue
-                    # Test for ports allowed from any IP
-                    if any(
-                        iprange.get("CidrIpv6", "") == "::/0"
-                        or iprange.get("CidrIp", "") == "0.0.0.0/0"
-                        for iprange in permission["IpRanges"]
-                    ):
-                        proto = permission.get("IpProtocol", "-1")
-                        toport = permission.get("ToPort", -1)
-                        fromport = permission.get("FromPort", -1)
-                        if toport == fromport:
-                            port = toport
-                        else:
-                            port = f"{fromport}-{toport}"
-                        gid = group["GroupId"]
-                        if gid in used_security_groups:
-                            used_open_gids.append(gid)
-                            if region not in open_to_all:
-                                open_to_all[region] = {proto: {port: [gid]}}
-                            elif proto not in open_to_all[region]:
-                                open_to_all[region][proto] = {port: [gid]}
-                            elif port not in open_to_all[region][proto]:
-                                open_to_all[region][proto][port] = [gid]
+            try:
+                for group in get_region_secgroups(context, region):
+                    # Ingress rules
+                    for permission in group["IpPermissions"]:
+                        if permission["IpRanges"] == []:
+                            # Empty Security Group
+                            continue
+                        # Test for ports allowed from any IP
+                        if any(
+                            iprange.get("CidrIpv6", "") == "::/0"
+                            or iprange.get("CidrIp", "") == "0.0.0.0/0"
+                            for iprange in permission["IpRanges"]
+                        ):
+                            proto = permission.get("IpProtocol", "-1")
+                            toport = permission.get("ToPort", -1)
+                            fromport = permission.get("FromPort", -1)
+                            if toport == fromport:
+                                port = toport
                             else:
-                                open_to_all[region][proto][port].append(gid)
-                        else:
-                            if region not in open_but_unused:
-                                open_but_unused[region] = {proto: {port: [gid]}}
-                            elif proto not in open_but_unused[region]:
-                                open_but_unused[region][proto] = {port: [gid]}
-                            elif port not in open_but_unused[region][proto]:
-                                open_but_unused[region][proto][port] = [gid]
+                                port = f"{fromport}-{toport}"
+                            gid = group["GroupId"]
+                            if gid in used_security_groups:
+                                used_open_gids.append(gid)
+                                if region not in open_to_all:
+                                    open_to_all[region] = {proto: {port: [gid]}}
+                                elif proto not in open_to_all[region]:
+                                    open_to_all[region][proto] = {port: [gid]}
+                                elif port not in open_to_all[region][proto]:
+                                    open_to_all[region][proto][port] = [gid]
+                                else:
+                                    open_to_all[region][proto][port].append(gid)
                             else:
-                                open_but_unused[region][proto][port].append(gid)
+                                if region not in open_but_unused:
+                                    open_but_unused[region] = {proto: {port: [gid]}}
+                                elif proto not in open_but_unused[region]:
+                                    open_but_unused[region][proto] = {port: [gid]}
+                                elif port not in open_but_unused[region][proto]:
+                                    open_but_unused[region][proto][port] = [gid]
+                                else:
+                                    open_but_unused[region][proto][port].append(gid)
+            except Exception as e:
+                print(e)
+
         # Categorize unused security groups for findings
         flagged_groups = {}
         for group in used_security_groups:
@@ -202,18 +210,17 @@ class ExposedEC2Scan(Scan):
                     region_secgroup_ipperms_map[g['GroupId']] = g['IpPermissions']
 
                     for instance in get_region_running_instances(context, region):
-                        # We only care about EC2 instances with public IPs
-                        if instance.public_ip_address is not None:
-                            if instance.security_groups is not None:
-                                # Look up instance's rules by finding the security group in the lookup map
-                                for instance_group in instance.security_groups:
-                                    if instance_group['GroupId'] in region_secgroup_ipperms_map.keys():                                    
-                                        for rule in region_secgroup_ipperms_map[instance_group['GroupId']]:                                    
-                                            for iprange in rule['IpRanges']:
-                                                if (iprange.get("CidrIpv6", "") == "::/0" or iprange.get("CidrIp", "") == '0.0.0.0/0') and rule['IpProtocol'] in ('tcp', 'udp'):
-                                                    entry = {"Region": region, "GroupId": instance_group['GroupId'], "InstanceId": instance.instance_id, "PublicIpAddress": instance.public_ip_address, "ToPort": rule['ToPort']}
-                                                    if entry not in results:
-                                                        results.append(entry)
+                        # We only care about EC2 instances with public IPs and attached security groups
+                        if instance.public_ip_address is not None and instance.security_groups is not None:
+                            # Look up instance's rules by finding the security group in the lookup map
+                            for instance_group in instance.security_groups:
+                                if instance_group['GroupId'] in region_secgroup_ipperms_map.keys():                                    
+                                    for rule in region_secgroup_ipperms_map[instance_group['GroupId']]:                                    
+                                        for iprange in rule['IpRanges']:
+                                            if (iprange.get("CidrIpv6", "") == "::/0" or iprange.get("CidrIp", "") == '0.0.0.0/0') and rule['IpProtocol'] in ('tcp', 'udp'):
+                                                entry = {"Region": region, "GroupId": instance_group['GroupId'], "InstanceId": instance.instance_id, "PublicIpAddress": instance.public_ip_address, "ToPort": rule['ToPort']}
+                                                if entry not in results:
+                                                    results.append(entry)
             except Exception as e:
                 print(e)
 
