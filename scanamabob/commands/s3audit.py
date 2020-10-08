@@ -12,7 +12,7 @@ USAGE = f"""{sys.argv[0]} s3audit [-h]"""
 
 def add_parser(main_parser):
     parser = main_parser.add_parser(
-        name='s3audit', description=DESCRIPTION, usage=USAGE
+        name="s3audit", description=DESCRIPTION, usage=USAGE
     )
     add_context_to_argparse(parser)
     parser.set_defaults(func=command)
@@ -115,7 +115,7 @@ def audit_bucket(context, bucket):
 
 
 def command(arguments):
-    ''' Main handler of the s3audit subcommand '''
+    """ Main handler of the s3audit subcommand """
     context = Context(arguments.profiles, arguments.regions)
     buckets = {}
     for profile in context.profiles:

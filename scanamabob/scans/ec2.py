@@ -7,7 +7,7 @@ from scanamabob.services.ec2 import (
     get_region_instances,
     get_region_secgroups,
     get_regions,
-    get_region_running_instances
+    get_region_running_instances,
 )
 
 from IPython import embed
@@ -60,7 +60,6 @@ class SecurityGroupScan(Scan):
         open_but_unused = {}
         used_open_gids = []
 
-
         # Collect list of security groups attached to a network interface
         for region in context.regions:
             try:
@@ -78,7 +77,9 @@ class SecurityGroupScan(Scan):
                                 },
                             }
                             if "Association" in interface:
-                                info["ip"]["public"] = interface["Association"]["PublicIp"]
+                                info["ip"]["public"] = interface["Association"][
+                                    "PublicIp"
+                                ]
                             if gid not in used_security_groups:
                                 used_security_groups[gid] = [info]
                             else:
@@ -193,6 +194,7 @@ class PublicAMIScan(Scan):
 
         return findings
 
+
 class ExposedEC2Scan(Scan):
     title = "Scanning exposed EC2 instances"
     permissions = [""]
@@ -207,23 +209,42 @@ class ExposedEC2Scan(Scan):
                 region_secgroup_ipperms_map = {}
                 for g in get_region_secgroups(context, region):
                     # Create a lookup map between groups and corresponding rules
-                    region_secgroup_ipperms_map[g['GroupId']] = g['IpPermissions']
+                    region_secgroup_ipperms_map[g["GroupId"]] = g["IpPermissions"]
 
                     for instance in get_region_running_instances(context, region):
                         # We only care about EC2 instances with public IPs and attached security groups
-                        if instance.public_ip_address is not None and instance.security_groups is not None:
+                        if (
+                            instance.public_ip_address is not None
+                            and instance.security_groups is not None
+                        ):
                             # Look up instance's rules by finding the security group in the lookup map
                             for instance_group in instance.security_groups:
-                                if instance_group['GroupId'] in region_secgroup_ipperms_map.keys():                                    
-                                    for rule in region_secgroup_ipperms_map[instance_group['GroupId']]:                                    
-                                        for iprange in rule['IpRanges']:
-                                            if (iprange.get("CidrIpv6", "") == "::/0" or iprange.get("CidrIp", "") == '0.0.0.0/0') and rule['IpProtocol'] in ('tcp', 'udp'):
-                                                entry = {"Region": region, "GroupId": instance_group['GroupId'], "InstanceId": instance.instance_id, "PublicIpAddress": instance.public_ip_address, "ToPort": rule['ToPort']}
+                                if (
+                                    instance_group["GroupId"]
+                                    in region_secgroup_ipperms_map.keys()
+                                ):
+                                    for rule in region_secgroup_ipperms_map[
+                                        instance_group["GroupId"]
+                                    ]:
+                                        for iprange in rule["IpRanges"]:
+                                            if (
+                                                iprange.get("CidrIpv6", "") == "::/0"
+                                                or iprange.get("CidrIp", "")
+                                                == "0.0.0.0/0"
+                                            ) and rule["IpProtocol"] in ("tcp", "udp"):
+                                                entry = {
+                                                    "Region": region,
+                                                    "GroupId": instance_group[
+                                                        "GroupId"
+                                                    ],
+                                                    "InstanceId": instance.instance_id,
+                                                    "PublicIpAddress": instance.public_ip_address,
+                                                    "ToPort": rule["ToPort"],
+                                                }
                                                 if entry not in results:
                                                     results.append(entry)
             except Exception as e:
                 print(e)
-
 
         if len(results) > 0:
             return [
@@ -236,12 +257,13 @@ class ExposedEC2Scan(Scan):
             ]
         return []
 
+
 scans = ScanSuite(
     "EC2 Scans",
     {
         "encryption": EncryptionScan(),
         "securitygroups": SecurityGroupScan(),
         "publicamis": PublicAMIScan(),
-        "exposedec2": ExposedEC2Scan()
+        "exposedec2": ExposedEC2Scan(),
     },
 )
