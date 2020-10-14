@@ -89,8 +89,8 @@ class SecurityGroupScan(Scan):
                         continue
                     # Test for ports allowed from any IP
                     if any(
-                        iprange["CidrIpv6"] == "::/0"
-                        or iprange["CidrIp"] == "0.0.0.0/0"
+                        iprange.get("CidrIpv6", "") == "::/0"
+                        or iprange.get("CidrIp", "") == "0.0.0.0/0"
                         for iprange in permission["IpRanges"]
                     ):
                         proto = permission.get("IpProtocol", "-1")
