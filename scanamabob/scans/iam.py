@@ -1,15 +1,19 @@
 from datetime import datetime, timezone
 from scanamabob.scans import Finding, Scan, ScanSuite
 from scanamabob.scans import Finding, Scan, ScanSuite
-from scanamabob.services.iam import client, resources, get_all_users, \
-    get_credential_report, get_attached_iam_policy_documents
+from scanamabob.services.iam import (
+    client,
+    resources,
+    get_all_users,
+    get_credential_report,
+    get_attached_iam_policy_documents,
+)
 from scanamabob.services.iam import (
     client,
     get_all_users,
     get_credential_report,
     resources,
 )
-
 
 
 class MfaScan(Scan):
@@ -120,10 +124,11 @@ class RootAccessKey(Scan):
                     return [Finding(context.state, self.title, "HIGH")]
         return []
 
+
 class NotActionScan(Scan):
-    title = 'NotAction directives present'
+    title = "NotAction directives present"
     # DOUBLE CHECK
-    permissions = ['iam:GenerateCredentialReport', 'iam:GetCredentialReport']
+    permissions = ["iam:GenerateCredentialReport", "iam:GetCredentialReport"]
 
     def run(self, context):
         iam = client(context)
@@ -132,34 +137,43 @@ class NotActionScan(Scan):
         try:
             for arn in poldocs.keys():
                 not_action_resources = []
-                
-                poldoc = poldocs[arn][1]['PolicyVersion']['Document']['Statement']
-        
+
+                poldoc = poldocs[arn][1]["PolicyVersion"]["Document"]["Statement"]
+
                 if type(poldoc) == list:
                     # multiple statements in the policy document
                     for stmt in poldoc:
                         try:
-                            if stmt['Effect'] == 'Allow' and stmt['NotAction'] is not None:
-                                not_action_resources.append(stmt['Resource'])
+                            if (
+                                stmt["Effect"] == "Allow"
+                                and stmt["NotAction"] is not None
+                            ):
+                                not_action_resources.append(stmt["Resource"])
                         except KeyError:
                             pass
 
                 elif type(poldoc) == dict:
                     # single statement in the policy document
-                    if 'NotAction' in poldoc.keys() and poldoc['Effect'] == 'Allow':
-                        not_action_resources.append(poldoc['Resource'])
+                    if "NotAction" in poldoc.keys() and poldoc["Effect"] == "Allow":
+                        not_action_resources.append(poldoc["Resource"])
 
                 if len(not_action_resources) > 0:
                     not_action_policies[arn] = not_action_resources
-            
+
             if len(not_action_policies) > 0:
-                return [Finding(context.state, self.title, 'HIGH', 
-                    not_action_policies=not_action_policies)]
+                return [
+                    Finding(
+                        context.state,
+                        self.title,
+                        "HIGH",
+                        not_action_policies=not_action_policies,
+                    )
+                ]
             else:
                 return []
         except Exception as err:
-            print(f'Unexpected error: {err}')
-            
+            print(f"Unexpected error: {err}")
+
 
 class PasswordPolicy(Scan):
     title = "AWS account password policies"
@@ -263,12 +277,16 @@ class KeyRotation(Scan):
             ]
         return []
 
-scans = ScanSuite('IAM Scans',
-              {'mfa': MfaScan(),
-               'rootkey': RootAccessKey(),
-               'password_policy': PasswordPolicy(),
-               'key_rotation': KeyRotation(),
-               'root_mfa': RootMfaScan(),
-               'password_age': PasswordAgeScan(),
-               'not_action': NotActionScan()})
 
+scans = ScanSuite(
+    "IAM Scans",
+    {
+        "mfa": MfaScan(),
+        "rootkey": RootAccessKey(),
+        "password_policy": PasswordPolicy(),
+        "key_rotation": KeyRotation(),
+        "root_mfa": RootMfaScan(),
+        "password_age": PasswordAgeScan(),
+        "not_action": NotActionScan(),
+    },
+)

@@ -68,8 +68,9 @@ def get_credential_report(context):
     __cache_credential_report[context.current_profile] = creds_csv
     return creds_csv
 
+
 def get_attached_iam_policy_documents(context):
-    ''' Get only the attached IAM policies and the associated documents, and cache results '''
+    """ Get only the attached IAM policies and the associated documents, and cache results """
     attached_iam_policy_documents = {}
 
     if context.current_profile in __cache_attached_iam_policy_documents:
@@ -77,20 +78,21 @@ def get_attached_iam_policy_documents(context):
 
     iam = client(context)
     try:
-        attached_iam_policies = iam.list_policies(OnlyAttached=True)['Policies']
+        attached_iam_policies = iam.list_policies(OnlyAttached=True)["Policies"]
         for pol in attached_iam_policies:
-            arn = pol['Arn']
-            policy_doc = (iam.get_policy_version(PolicyArn=pol['Arn'], VersionId=pol['DefaultVersionId']))
+            arn = pol["Arn"]
+            policy_doc = iam.get_policy_version(
+                PolicyArn=pol["Arn"], VersionId=pol["DefaultVersionId"]
+            )
             # store both the policy and the associated document in a map referenced by an Arn
             attached_iam_policy_documents[arn] = (pol, policy_doc)
 
         # Save result in cache for future requests
-        __cache_attached_iam_policy_documents[context.current_profile] = attached_iam_policy_documents
+        __cache_attached_iam_policy_documents[
+            context.current_profile
+        ] = attached_iam_policy_documents
 
         return attached_iam_policy_documents
 
     except Exception as e:
         print("Get attached policies failed: " + e)
-
-
-
