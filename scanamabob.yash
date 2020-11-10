@@ -1,0 +1,125 @@
+#!/usr/bin/yash
+
+# Entry point
+function completion/scanamabob {
+	if [ ${WORDS[#]} -le 1 ]; then
+		# Complete first word after command name
+		case $TARGETWORD in (-*)
+			# Complete flags before subcommand
+			complete -- --help
+			complete -- -h
+			# Help is mutually exclusive with subcommands.
+			# If flags are added that can coexist, then this will probably need
+			# to call completion//parseoptions and do more complicated logic
+			;;
+		(*)
+			# Complete subcommand
+			complete -D "Scan AWS environment for common security misconfigurations" scan
+			complete summary
+			complete -D "Generate report on S3 access controls" s3audit
+		esac
+	else
+		# Complete subcommand-specific things
+		if command -vf "completion/scanamabob::${WORDS[2]}" > /dev/null;
+		then
+			command -f "completion/scanamabob::${WORDS[2]}"
+		fi
+	fi
+}
+
+# Options shared by all subcommands
+function completion/scanamabob::sharedoptions {
+	OPTIONS=(
+	"p: --profile; AWS profiles to use, * for all"
+	"r: --regions; AWS regions to use, '*' for all"
+	"h: --help; help"
+	)
+	command -f completion//parseoptions -n -e
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		(p)
+			# Complete profiles
+			complete '*'
+			while read -r a b;
+			do
+				complete "${b[1,-2]}"
+			done <(grep '^\[profile ' ${AWS_CONFIG_FILE-$HOME/.aws/config})
+			;;
+		(r)
+			# Complete regions
+			complete '*'
+			complete ap-northeast-1
+			complete ap-northeast-2
+			complete ap-south-1
+			complete ap-southeast-1
+			complete ap-southeast-2
+			complete ca-central-1
+			complete eu-central-1
+			complete eu-north-1
+			complete eu-west-1
+			complete eu-west-2
+			complete eu-west-3
+			complete sa-east-1
+			complete us-east-1
+			complete us-east-2
+			complete us-west-1
+			complete us-west-2
+			;;
+	esac
+}
+
+#
+# Subcommands
+#
+
+function completion/scanamabob::s3audit {
+	command -f completion/scanamabob::sharedoptions
+}
+
+function completion/scanamabob::summary {
+	command -f completion/scanamabob::sharedoptions
+}
+
+# Helper function for scanamabob scan -o ... and scanamabob scan --output ...
+function completion/scanamabob::--output:arg {
+	complete stdout
+	complete json
+}
+
+function completion/scanamabob::scan {
+	# Case scanamabob scan --output ...
+	if [ "${WORDS[-1]}" == --output ]; then
+		command -f completion/scanamabob::--output:arg
+		return
+	fi
+
+	OPTIONS=(
+	"o: --output; Output format for scan (default: stdout)"
+	"l --list-scans; List the scans available to run"
+	"P --permissions; Return IAM Policy JSON needed to complete scan"
+	)
+	command -f completion//parseoptions -n -e
+	case $ARGOPT in
+		(-)
+			# Case scanamabob scan -...
+			command -f completion//completeoptions -e
+			command -f completion/scanamabob::sharedoptions
+			;;
+		(o)
+			# Case scanamabob scan -o ...
+			command -f completion/scanamabob::--output:arg
+			;;
+		('')
+			# Complete scans
+			# Case scanamabob scan ...
+			while read -r quotedscan;
+			do
+				complete "${quotedscan[2,-2]}"
+			done <(scanamabob scan -l | grep -o '"[^"]\+"')
+			;;
+	esac
+}
+
+# vim: set ft=sh ts=4 sts=4 sw=4 noet:
